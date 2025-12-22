@@ -1,0 +1,235 @@
+# configs/default.yaml
+# Single source of truth for pipeline + backtest.
+# If you change any key behavior, update CONTINUITY.md.
+
+project:
+  name: "100k_strategy"
+  timezone: "UTC"
+
+paths:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  artifacts_dir: "artifacts"
+  logs_dir: "logs"
+
+data:
+  # NOTE: symbols/exchanges are adjustable without changing code
+  exchanges:
+    - name: "binance"
+      market: "perp"
+      symbols: ["BTCUSDT"]   # MVP: start with 1 symbol; expand later
+      depth_levels: 10
+      use_l2: true
+    - name: "deepcoin"
+      market: "perp"
+      symbols: []            # UNCONFIRMED: fill when you have data access
+      depth_levels: 10
+      use_l2: true
+
+  time_range:
+    # Use ISO dates; pipeline should support partial downloads
+    start_date: "2025-01-01"
+    end_date: "2025-01-31"
+
+  # Data quality rules (pipeline should enforce)
+  quality:
+    require_monotonic_timestamps: true
+    drop_duplicate_timestamps_keep: "last"  # last|first
+    max_gap_seconds: 120  # warning threshold
+
+bars:
+  # Build 1m bars and aggregate to 5m
+  base_tf: "1m"
+  entry_tf: "5m"
+
+  price_source:
+    # mid is recommended for microstructure stability
+    use_mid_ohlc: true
+    use_trade_ohlc: false
+
+  l2:
+    levels: 10
+    # If only snapshots are available, features must use snapshot deltas/proxies
+    snapshot_mode: true
+
+  derived:
+    compute_vwap: true
+    compute_spread: true
+    compute_microprice: true
+
+regime:
+  # Regime computed from 5m bars (but uses 30m–4h rolling windows derived from 5m)
+  tf: "5m"
+  windows:
+    rv_window_bars: 12        # 12 * 5m = 60m
+    ema_fast_bars: 12         # 60m
+    ema_slow_bars: 48         # 240m (4h)
+  thresholds:
+    hazard_rv_percentile: 0.90     # top 10% volatility -> HAZARD
+    trend_strength_threshold: 1.50 # |EMA_fast-EMA_slow| / rv > threshold -> TREND
+  outputs:
+    labels: ["TREND", "RANGE", "HAZARD"]
+
+strategy:
+  entries_5m:
+    # 5m entry logic
+    range:
+      enabled: true
+      center:
+        kind: "rolling_vwap"
+        window_5m_bars: 12     # 60m
+      band:
+        kind: "rolling_std_mid"
+        window_5m_bars: 12
+        k: 1.5
+      cooldown_5m_bars: 1      # prevent re-entry spam on same boundary touch
+    trend:
+      enabled: true
+      ema_fast_bars: 12
+      ema_slow_bars: 48
+      pullback:
+        # If pullback tolerance is ATR-based, ensure ATR exists on 5m bars
+        kind: "atr"
+        atr_window_5m_bars: 14
+        tolerance_atr: 0.3
+
+labeling:
+  # Event sampling (optional) + triple barrier labeling (core)
+  use_cusum: true
+
+  cusum:
+    tf: "1m"
+    vol_window_1m_bars: 60
+    threshold_k: 3.0
+    # If true, only allow entry events near cusum event times
+    gate_entries: false
+
+  triple_barrier:
+    # Applies to each entry event
+    horizon_minutes: 10
+    vol:
+      kind: "ewma"         # ewma|rolling
+      window_1m_bars: 60
+      min_sigma: 1.0e-6
+    barriers:
+      # Price barriers are set using sigma (volatility)
+      pt_mult: 1.0
+      sl_mult: 1.0
+    price_source: "mid_close"  # mid_close|trade_close
+    tie_break:
+      # If both PT and SL are crossed within same bar (gap), choose:
+      # "first_touch" (needs intra-bar high/low checks), else fallback "worst_case"
+      mode: "worst_case"  # first_touch|worst_case|best_case
+
+hazard:
+  # 1m hazard meter dataset + policy horizon
+  horizon_minutes: 5
+  feature_window_minutes: 3
+
+  # How to label per-minute rows inside an active trade
+  label_mode: "adverse_barrier"
+  adverse_barrier:
+    which: "SL"   # SL|END_EVENT (if you later implement end_event)
+
+  # If you later implement "END_EVENT" mode, define it here
+  end_event:
+    enabled: false
+    kind: "drawdown_or_structure"
+    drawdown:
+      atr_window_1m_bars: 14
+      k_atr: 1.0
+    structure:
+      swing_lookback_1m_bars: 5
+
+features:
+  # Toggle feature groups without touching code.
+  ofi:
+    enabled: true
+    levels: [1, 5, 10]
+    normalize_by_depth: true
+
+  kyle_lambda:
+    enabled: true
+    window_minutes: 3
+    signed_flow_source: "ofi"      # ofi|cvd
+    separate_up_down: true
+    outputs: ["lambda", "r2", "resid_std", "lambda_up", "lambda_down"]
+
+  replenishment:
+    enabled: true
+    levels: 10
+    eps: 1.0e-9
+    outputs: ["depth_l", "depletion", "replenish", "repl_ratio", "spread_mean", "microprice"]
+
+  vpin:
+    enabled: false
+    bucket_volume: 10000
+    outputs: ["vpin"]
+
+model:
+  # Start simple + calibrated.
+  type: "logistic_regression"  # logistic_regression|xgboost|lightgbm
+  random_state: 42
+
+  preprocessing:
+    standardize: true
+    clip_zscore: 10.0
+
+  training:
+    target: "hazard"
+    class_weight: "balanced"  # balanced|none
+    calibration:
+      enabled: true
+      method: "isotonic"      # isotonic|sigmoid
+    validation:
+      method: "purged_walk_forward"
+      embargo_minutes: 10
+      splits:
+        train_days: 20
+        test_days: 5
+        step_days: 5
+
+policy:
+  # How hazard probabilities turn into actions
+  exit:
+    enabled: true
+    hazard_threshold: 0.70
+    consecutive_minutes: 2
+    require_rising: true
+  fail_fast:
+    enabled: true
+    hazard_threshold: 0.85
+    # Optional confirmations (if feature missing, ignore)
+    confirm_signals:
+      require_absorption_spike: false
+      require_replenishment_drop: false
+  add_risk:
+    enabled: true
+    hazard_max_to_add: 0.20
+
+backtest:
+  # Backtest assumptions (must be explicit)
+  initial_capital: 10000
+  leverage: 3
+
+  fees_bps:
+    maker: 2.0
+    taker: 4.0
+
+  slippage_bps: 2.0
+  latency_ms: 0
+
+  sizing:
+    # Risk-based sizing (simple MVP)
+    max_risk_per_trade: 0.01
+    max_position_notional_pct: 0.20
+
+  reporting:
+    metrics: ["pnl", "sharpe", "max_drawdown", "win_rate", "avg_win", "avg_loss", "trade_count"]
+    save_trades: true
+
+logging:
+  level: "INFO"
+  log_to_file: true
+
+seed: 42
