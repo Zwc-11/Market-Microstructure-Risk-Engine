@@ -51,9 +51,10 @@
   - Drafted AGENTS.md structure and repo blueprint (folders/modules/tests/CI expectations)
   - Decided to keep Kyle lambda / OFI / absorption-price-discovery features; VPIN optional
   - Implemented triple-barrier labeling with OHLC detection, tie-breaks, and no-lookahead tests; ran `pytest -q`
+  - Implemented symmetric CUSUM event sampling with rolling volatility threshold + tests; ran `pytest -q`
+  - Strengthened no-lookahead tests with forward-merge detection and future-perturbation guards; ran `pytest -q`
 - Now:
-  - Implement CUSUM event sampling + tests
-  - Add no-lookahead checks + synthetic deterministic dataset tests
+  - Add synthetic deterministic dataset tests
 - Next:
   - Implement bar builders (1m/5m) from trades + L2
   - Implement regime classifier + 5m entry generator
