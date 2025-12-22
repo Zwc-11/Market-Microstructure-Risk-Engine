@@ -83,3 +83,37 @@ def compute_summary(
         "trade_count": trade_count,
         "turnover": float(turnover),
     }
+
+
+def compute_tail_metrics(trades: pd.DataFrame) -> Dict[str, float]:
+    if trades.empty:
+        return {"worst_5pct_trade": 0.0, "worst_week_pnl": 0.0}
+
+    worst_5pct = float(trades["net_pnl"].quantile(0.05))
+    if "exit_ts" in trades.columns:
+        exit_ts = pd.to_datetime(trades["exit_ts"])
+        weekly = trades.copy()
+        weekly["week"] = exit_ts.dt.to_period("W").astype(str)
+        weekly_pnl = weekly.groupby("week")["net_pnl"].sum()
+        worst_week = float(weekly_pnl.min()) if not weekly_pnl.empty else 0.0
+    else:
+        worst_week = 0.0
+
+    return {"worst_5pct_trade": worst_5pct, "worst_week_pnl": worst_week}
+
+
+def compute_time_in_trade(trades: pd.DataFrame) -> float:
+    if trades.empty or "entry_ts" not in trades.columns or "exit_ts" not in trades.columns:
+        return 0.0
+    entry = pd.to_datetime(trades["entry_ts"])
+    exit_ts = pd.to_datetime(trades["exit_ts"])
+    durations = (exit_ts - entry).dt.total_seconds() / 60.0
+    return float(durations.mean())
+
+
+def compute_hazard_exit_counts(trades: pd.DataFrame) -> Dict[str, int]:
+    if trades.empty or "exit_reason" not in trades.columns:
+        return {"hazard_exits": 0, "fail_fast_exits": 0}
+    hazard_exits = int((trades["exit_reason"] == "hazard_exit").sum())
+    fail_fast = int((trades["exit_reason"] == "hazard_fail_fast").sum())
+    return {"hazard_exits": hazard_exits, "fail_fast_exits": fail_fast}

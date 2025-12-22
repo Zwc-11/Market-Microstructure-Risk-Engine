@@ -58,6 +58,11 @@
   - Implemented regime classifier with hazard/trend/range logic, hysteresis, and tests; ran `pytest -q`
   - Implemented 5m entry generator with RANGE/TREND logic, cooldowns, deterministic IDs, and tests; ran `pytest -q`
   - Implemented baseline event-driven backtest (triple-barrier exits, costs, metrics, CLI) with tests; ran `pytest -q`
+  - Implemented walk-forward evaluation + ablations for baseline with summary output and tests; ran `pytest -q`
+  - Implemented hazard dataset builder with per-minute labels, SL recompute, and tests; ran `pytest -q`
+  - Implemented microstructure features (OFI, Kyle lambda, replenishment) with tests; ran `pytest -q`
+  - Implemented hazard model training pipeline with walk-forward validation, calibration, and artifacts; ran `pytest -q`
+  - Implemented hazard policy integration (1m exits) with enhanced backtest, comparison metrics, and tests; ran `pytest -q`
 - Now:
   - Add synthetic deterministic dataset tests
 - Next:
