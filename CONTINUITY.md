@@ -53,6 +53,8 @@
   - Implemented triple-barrier labeling with OHLC detection, tie-breaks, and no-lookahead tests; ran `pytest -q`
   - Implemented symmetric CUSUM event sampling with rolling volatility threshold + tests; ran `pytest -q`
   - Strengthened no-lookahead tests with forward-merge detection and future-perturbation guards; ran `pytest -q`
+  - Implemented 1m time bars with mid OHLC, volume, vwap, and L2-derived spread/microprice; added tests; ran `pytest -q`
+  - Added 5m resampling from 1m time bars with OHLC/VWAP/volume aggregation; added tests; ran `pytest -q`
 - Now:
   - Add synthetic deterministic dataset tests
 - Next:
