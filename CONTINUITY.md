@@ -55,6 +55,8 @@
   - Strengthened no-lookahead tests with forward-merge detection and future-perturbation guards; ran `pytest -q`
   - Implemented 1m time bars with mid OHLC, volume, vwap, and L2-derived spread/microprice; added tests; ran `pytest -q`
   - Added 5m resampling from 1m time bars with OHLC/VWAP/volume aggregation; added tests; ran `pytest -q`
+  - Implemented regime classifier with hazard/trend/range logic, hysteresis, and tests; ran `pytest -q`
+  - Implemented 5m entry generator with RANGE/TREND logic, cooldowns, deterministic IDs, and tests; ran `pytest -q`
 - Now:
   - Add synthetic deterministic dataset tests
 - Next:
