@@ -57,6 +57,7 @@
   - Added 5m resampling from 1m time bars with OHLC/VWAP/volume aggregation; added tests; ran `pytest -q`
   - Implemented regime classifier with hazard/trend/range logic, hysteresis, and tests; ran `pytest -q`
   - Implemented 5m entry generator with RANGE/TREND logic, cooldowns, deterministic IDs, and tests; ran `pytest -q`
+  - Implemented baseline event-driven backtest (triple-barrier exits, costs, metrics, CLI) with tests; ran `pytest -q`
 - Now:
   - Add synthetic deterministic dataset tests
 - Next:
