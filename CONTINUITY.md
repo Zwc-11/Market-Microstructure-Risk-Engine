@@ -44,6 +44,13 @@
   - Evaluate trading outcomes (PnL after costs, Sharpe, maxDD), not just AUC/accuracy
 - Interpretability:
   - Policy rules log “why” (hazard threshold, slope, absorption spike, replenishment drop)
+- Data lake layout + schemas:
+  - Parquet partitioning: data/raw/<exchange>/<market>/<symbol>/<dataset>/date=YYYY-MM-DD/part-000.parquet
+  - Manifest per dataset with schema_version, time_range_covered, row_count, file hashes/sizes, created_at
+  - Canonical schemas for klines_1m, agg_trades, l2_snapshots in src/data/schemas.py
+- Binance Vision ingestion:
+  - Use daily Binance Vision files (zip) with optional .CHECKSUM verification
+  - Supported datasets: klines_1m, agg_trades, book_ticker, book_depth, premium_kline, mark_kline
 
 ## State:
 - Done:
@@ -63,14 +70,17 @@
   - Implemented microstructure features (OFI, Kyle lambda, replenishment) with tests; ran `pytest -q`
   - Implemented hazard model training pipeline with walk-forward validation, calibration, and artifacts; ran `pytest -q`
   - Implemented hazard policy integration (1m exits) with enhanced backtest, comparison metrics, and tests; ran `pytest -q`
+  - Implemented Phase A data ingestion: Binance USD-M REST klines + aggTrades, storage/manifest validation, build_dataset CLI, and tests; ran `pytest -q`
+  - Implemented Phase C Deepcoin REST klines + trades mapping to canonical schemas; ran `pytest -q`
+  - Implemented Binance Vision ingestion with checksum verification, dataset selection, and tests/fixtures; ran `pytest -q`
 - Now:
-  - Add synthetic deterministic dataset tests
+  - Implement end-to-end evidence run on real data (run_all CLI + artifacts) after Vision ingest is wired
 - Next:
-  - Implement bar builders (1m/5m) from trades + L2
-  - Implement regime classifier + 5m entry generator
-  - Build hazard dataset + microstructure features
-  - Train model + calibration + policy integration
-  - Backtest baseline vs hazard-enhanced, include costs; set up GitHub Actions CI
+  - Implement Phase B Binance local order book (WS sync + snapshots/diffs) and L2 storage pipeline
+  - Add Deepcoin L2 snapshots/diffs support and throttled backfill
+  - Add run_all CLI for full pipeline (bars -> features -> train -> backtest)
+  - Add execution realism + risk kill switches (backtest-only)
+  - Set up GitHub Actions CI
 
 ## Open questions (UNCONFIRMED if needed):
 - Data availability:
@@ -88,15 +98,17 @@
   - AGENTS.md (agent instructions + coding standards)
   - CONTINUITY.md (this file)
   - configs/default.yaml
-  - src/labeling/triple_barrier.py
-  - src/labeling/cusum.py
-  - src/labeling/purge.py
-  - src/features/{microstructure.py,impact.py,replenishment.py}
-  - src/strategy/{entries_5m.py,policy_1m.py}
-  - src/backtest/{simulator.py,metrics.py}
-  - tests/test_triple_barrier.py, tests/test_cusum.py, tests/test_no_lookahead.py
+  - src/data/{exchange_base.py,binance.py,deepcoin.py,schemas.py,storage.py}
+  - src/utils/http.py
+  - src/cli/build_dataset.py
+  - tests/test_data_binance.py, tests/test_data_deepcoin.py, tests/test_storage_manifest.py, tests/test_dataset_build_smoke.py
+  - tests/test_vision_parser_klines.py, tests/test_vision_parser_aggtrades.py, tests/test_vision_parser_bookticker.py
+  - tests/test_vision_parser_bookdepth.py, tests/test_dataset_build_vision_smoke.py
+  - tests/fixtures/vision/...
 - Commands (planned):
   - pytest -q
-  - python -m src.cli.build_dataset ...
+  - python -m src.cli.build_dataset --config configs/default.yaml --exchange binance --symbol BTCUSDT --start 2025-01-01 --end 2025-01-31 --mode rest
+  - python -m src.cli.build_dataset --config configs/default.yaml --exchange binance --symbol BTCUSDT --start 2025-01-01 --end 2025-01-31 --source vision --datasets klines_1m,agg_trades,book_ticker,book_depth,premium_kline,mark_kline
+  - python -m src.cli.build_dataset --config configs/default.yaml --exchange deepcoin --symbol BTCUSDT --start 2025-01-01 --end 2025-01-31 --mode rest
   - python -m src.cli.train --config configs/default.yaml
   - python -m src.cli.backtest --config configs/default.yaml
