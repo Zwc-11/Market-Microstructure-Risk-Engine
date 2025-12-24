@@ -1,0 +1,106 @@
+{
+  "files_found": [
+    {
+      "date": "2025-12-01",
+      "path": "E:\\bybit_manual_exports\\BTCUSDT2025-12-01.csv.gz"
+    },
+    {
+      "date": "2025-12-02",
+      "path": "E:\\bybit_manual_exports\\BTCUSDT2025-12-02.csv.gz"
+    },
+    {
+      "date": "2025-12-03",
+      "path": "E:\\bybit_manual_exports\\BTCUSDT2025-12-03.csv.gz"
+    },
+    {
+      "date": "2025-12-04",
+      "path": "E:\\bybit_manual_exports\\BTCUSDT2025-12-04.csv.gz"
+    },
+    {
+      "date": "2025-12-05",
+      "path": "E:\\bybit_manual_exports\\BTCUSDT2025-12-05.csv.gz"
+    },
+    {
+      "date": "2025-12-06",
+      "path": "E:\\bybit_manual_exports\\BTCUSDT2025-12-06.csv.gz"
+    },
+    {
+      "date": "2025-12-07",
+      "path": "E:\\bybit_manual_exports\\BTCUSDT2025-12-07.csv.gz"
+    }
+  ],
+  "files_used": [
+    {
+      "date": "2025-12-01",
+      "path": "E:\\bybit_manual_exports\\BTCUSDT2025-12-01.csv.gz"
+    }
+  ],
+  "rows_seen_total": 3669773,
+  "rows_kept_total": 3669773,
+  "min_ts_seen": 1764547200010,
+  "max_ts_seen": 1764633599398,
+  "min_ts_kept": 1764547200010,
+  "max_ts_kept": 1764633599398,
+  "invalid_rows_dropped": {
+    "bad_ts": 0,
+    "bad_price": 0,
+    "bad_size": 0,
+    "bad_side": 0,
+    "bad_symbol": 0
+  },
+  "sample_rows": [
+    {
+      "ts_ms": 1764547200010,
+      "symbol": "BTCUSDT",
+      "side": "buy",
+      "price": 90308.6,
+      "size": 0.599,
+      "trade_id": "df3c26c2-3273-5d04-b1d3-0a53a73ab4a3",
+      "raw_source": "bybit_csv_gz"
+    },
+    {
+      "ts_ms": 1764547200010,
+      "symbol": "BTCUSDT",
+      "side": "buy",
+      "price": 90308.6,
+      "size": 0.055,
+      "trade_id": "ab6d894d-0468-577b-a460-b4f4486953f4",
+      "raw_source": "bybit_csv_gz"
+    },
+    {
+      "ts_ms": 1764547200010,
+      "symbol": "BTCUSDT",
+      "side": "buy",
+      "price": 90308.6,
+      "size": 0.11,
+      "trade_id": "5570341b-1d89-51ea-bd70-9c521cbe95c2",
+      "raw_source": "bybit_csv_gz"
+    },
+    {
+      "ts_ms": 1764547200010,
+      "symbol": "BTCUSDT",
+      "side": "buy",
+      "price": 90308.6,
+      "size": 0.11,
+      "trade_id": "d4543ee5-e8cb-550b-955d-19ad8f496e04",
+      "raw_source": "bybit_csv_gz"
+    },
+    {
+      "ts_ms": 1764547200010,
+      "symbol": "BTCUSDT",
+      "side": "buy",
+      "price": 90308.6,
+      "size": 0.591,
+      "trade_id": "b87fefa9-bac0-59be-9054-3e3ef719b283",
+      "raw_source": "bybit_csv_gz"
+    }
+  ],
+  "requested_start": "2025-12-01",
+  "requested_end": "2025-12-02",
+  "requested_start_ms": 1764547200000,
+  "requested_end_ms": 1764633600000,
+  "min_ts_seen_utc": "2025-12-01T00:00:00.010000+00:00",
+  "max_ts_seen_utc": "2025-12-01T23:59:59.398000+00:00",
+  "min_ts_kept_utc": "2025-12-01T00:00:00.010000+00:00",
+  "max_ts_kept_utc": "2025-12-01T23:59:59.398000+00:00"
+}

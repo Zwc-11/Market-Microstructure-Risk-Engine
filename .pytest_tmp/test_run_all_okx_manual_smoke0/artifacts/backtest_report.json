@@ -1,0 +1,18 @@
+{
+  "config_hash": "17b527dbb26c3e4556c2b91a73840c7980815d72d4f2f1653053d621698b4ed9",
+  "exchange": "okx",
+  "symbol": "BTC-USDT-SWAP",
+  "start": "2025-12-01",
+  "end": "2025-12-02",
+  "folds": 1,
+  "summary_mean": {
+    "fold_id": 0.0,
+    "baseline_pnl_net": 0.9,
+    "enhanced_pnl_net": 0.9
+  },
+  "summary_median": {
+    "fold_id": 0.0,
+    "baseline_pnl_net": 0.9,
+    "enhanced_pnl_net": 0.9
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "config_hash": "166d98c433e1e7c273484e04ebdbfdd586ec5b349f5edb0f4f822777f5d6bee2",
+  "features": {},
+  "metadata": {
+    "hazard_enabled": 0,
+    "coverage": {
+      "book_depth": 0.14345238095238094,
+      "agg_trades": 1.0
+    }
+  }
+}

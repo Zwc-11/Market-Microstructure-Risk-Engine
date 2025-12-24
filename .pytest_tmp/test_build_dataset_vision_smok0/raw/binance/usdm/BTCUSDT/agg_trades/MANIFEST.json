@@ -1,0 +1,21 @@
+{
+  "schema_version": "v1",
+  "dataset_name": "agg_trades",
+  "exchange": "binance",
+  "market": "usdm",
+  "symbol": "BTCUSDT",
+  "time_range_covered": [
+    1735689600001,
+    1735689600002
+  ],
+  "row_count": 2,
+  "files": [
+    {
+      "path": "binance\\usdm\\BTCUSDT\\agg_trades\\date=2025-01-01\\part-000.parquet",
+      "sha256": "4c5085ab5dd4c699ebbfb6df5a28a747da807ec888cfccc4de00a377da9681e2",
+      "size_bytes": 3839,
+      "mtime": 1766539190
+    }
+  ],
+  "created_at": "2025-12-24T01:19:50.526768+00:00"
+}

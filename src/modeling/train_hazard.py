@@ -44,6 +44,12 @@ def _prepare_features(
     merged = merged.dropna(subset=["y"])
     dropped_y = before - len(merged)
 
+    if feature_cols:
+        missing = merged[feature_cols].isna().mean()
+        feature_cols = [c for c in feature_cols if float(missing.get(c, 1.0)) <= 0.8]
+    if not feature_cols:
+        raise ValueError("No usable features after missingness filtering.")
+
     merged = merged.dropna(subset=feature_cols)
     return merged, feature_cols, dropped_y
 
@@ -194,8 +200,8 @@ def _fit_isotonic_calibrator(scores: np.ndarray, y_true: np.ndarray) -> _Isotoni
     y = y_true[order].astype(float)
 
     weights = np.ones_like(y)
-    v = y.copy()
-    w = weights.copy()
+    v = y.tolist()
+    w = weights.tolist()
     idx = list(range(len(v)))
 
     i = 0

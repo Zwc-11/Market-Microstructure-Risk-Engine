@@ -1,0 +1,21 @@
+{
+  "schema_version": "v1",
+  "dataset_name": "klines_1m",
+  "exchange": "binance",
+  "market": "usdm",
+  "symbol": "BTCUSDT",
+  "time_range_covered": [
+    0,
+    120000
+  ],
+  "row_count": 3,
+  "files": [
+    {
+      "path": "binance\\usdm\\BTCUSDT\\klines_1m\\date=1970-01-01\\part-000.parquet",
+      "sha256": "93e4a25134aea4a6a79c186fc96db6ba693dffa98d0ec6b0eb175eb89eccb580",
+      "size_bytes": 7458,
+      "mtime": 1766539191
+    }
+  ],
+  "created_at": "2025-12-24T01:19:51.411089+00:00"
+}

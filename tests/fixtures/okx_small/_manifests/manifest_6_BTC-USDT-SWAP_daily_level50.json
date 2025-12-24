@@ -1,0 +1,22 @@
+{
+  "code": "0",
+  "data": [
+    {
+      "dateAggrType": "daily",
+      "details": [
+        {
+          "date": "2025-09-01",
+          "groupDetails": [
+            {
+              "dateTs": "1756684800000",
+              "fileName": "BTC-USDT-SWAP-orderbook-2025-09-01.zip",
+              "url": "https://example.com/BTC-USDT-SWAP-orderbook-2025-09-01.zip"
+            }
+          ]
+        }
+      ],
+      "ts": "1766458000000"
+    }
+  ],
+  "msg": ""
+}

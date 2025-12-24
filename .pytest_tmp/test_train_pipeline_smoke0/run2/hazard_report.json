@@ -1,0 +1,218 @@
+{
+  "dropped_y": 0,
+  "folds": [
+    {
+      "fold_id": 0,
+      "test_start": "2025-01-02T00:00:00",
+      "test_end": "2025-01-03T00:00:00",
+      "auc": 1.0,
+      "pr_auc": 1.0,
+      "brier": 0.009079732222817296,
+      "lift_top_decile": 2.0833333333333335,
+      "reliability": [
+        {
+          "bin": 0,
+          "count": 0,
+          "mean_pred": NaN,
+          "mean_obs": NaN
+        },
+        {
+          "bin": 1,
+          "count": 13,
+          "mean_pred": 0.11095007624253712,
+          "mean_obs": 0.0
+        },
+        {
+          "bin": 2,
+          "count": 0,
+          "mean_pred": NaN,
+          "mean_obs": NaN
+        },
+        {
+          "bin": 3,
+          "count": 0,
+          "mean_pred": NaN,
+          "mean_obs": NaN
+        },
+        {
+          "bin": 4,
+          "count": 0,
+          "mean_pred": NaN,
+          "mean_obs": NaN
+        },
+        {
+          "bin": 5,
+          "count": 0,
+          "mean_pred": NaN,
+          "mean_obs": NaN
+        },
+        {
+          "bin": 6,
+          "count": 0,
+          "mean_pred": NaN,
+          "mean_obs": NaN
+        },
+        {
+          "bin": 7,
+          "count": 0,
+          "mean_pred": NaN,
+          "mean_obs": NaN
+        },
+        {
+          "bin": 8,
+          "count": 0,
+          "mean_pred": NaN,
+          "mean_obs": NaN
+        },
+        {
+          "bin": 9,
+          "count": 12,
+          "mean_pred": 0.9252981743119634,
+          "mean_obs": 1.0
+        }
+      ]
+    },
+    {
+      "fold_id": 1,
+      "test_start": "2025-01-03T00:00:00",
+      "test_end": "2025-01-04T00:00:00",
+      "auc": 1.0,
+      "pr_auc": 1.0,
+      "brier": 0.009079732222817296,
+      "lift_top_decile": 2.0833333333333335,
+      "reliability": [
+        {
+          "bin": 0,
+          "count": 0,
+          "mean_pred": NaN,
+          "mean_obs": NaN
+        },
+        {
+          "bin": 1,
+          "count": 13,
+          "mean_pred": 0.11095007624253712,
+          "mean_obs": 0.0
+        },
+        {
+          "bin": 2,
+          "count": 0,
+          "mean_pred": NaN,
+          "mean_obs": NaN
+        },
+        {
+          "bin": 3,
+          "count": 0,
+          "mean_pred": NaN,
+          "mean_obs": NaN
+        },
+        {
+          "bin": 4,
+          "count": 0,
+          "mean_pred": NaN,
+          "mean_obs": NaN
+        },
+        {
+          "bin": 5,
+          "count": 0,
+          "mean_pred": NaN,
+          "mean_obs": NaN
+        },
+        {
+          "bin": 6,
+          "count": 0,
+          "mean_pred": NaN,
+          "mean_obs": NaN
+        },
+        {
+          "bin": 7,
+          "count": 0,
+          "mean_pred": NaN,
+          "mean_obs": NaN
+        },
+        {
+          "bin": 8,
+          "count": 0,
+          "mean_pred": NaN,
+          "mean_obs": NaN
+        },
+        {
+          "bin": 9,
+          "count": 12,
+          "mean_pred": 0.9252981743119634,
+          "mean_obs": 1.0
+        }
+      ]
+    }
+  ],
+  "overall": {
+    "auc": 1.0,
+    "pr_auc": 0.9999999999999999,
+    "brier": 0.009079732222817296,
+    "lift_top_decile": 2.0833333333333335,
+    "reliability": [
+      {
+        "bin": 0,
+        "count": 0,
+        "mean_pred": NaN,
+        "mean_obs": NaN
+      },
+      {
+        "bin": 1,
+        "count": 26,
+        "mean_pred": 0.11095007624253714,
+        "mean_obs": 0.0
+      },
+      {
+        "bin": 2,
+        "count": 0,
+        "mean_pred": NaN,
+        "mean_obs": NaN
+      },
+      {
+        "bin": 3,
+        "count": 0,
+        "mean_pred": NaN,
+        "mean_obs": NaN
+      },
+      {
+        "bin": 4,
+        "count": 0,
+        "mean_pred": NaN,
+        "mean_obs": NaN
+      },
+      {
+        "bin": 5,
+        "count": 0,
+        "mean_pred": NaN,
+        "mean_obs": NaN
+      },
+      {
+        "bin": 6,
+        "count": 0,
+        "mean_pred": NaN,
+        "mean_obs": NaN
+      },
+      {
+        "bin": 7,
+        "count": 0,
+        "mean_pred": NaN,
+        "mean_obs": NaN
+      },
+      {
+        "bin": 8,
+        "count": 0,
+        "mean_pred": NaN,
+        "mean_obs": NaN
+      },
+      {
+        "bin": 9,
+        "count": 24,
+        "mean_pred": 0.9252981743119633,
+        "mean_obs": 1.0
+      }
+    ]
+  },
+  "features": [
+    "signal"
+  ]
+}

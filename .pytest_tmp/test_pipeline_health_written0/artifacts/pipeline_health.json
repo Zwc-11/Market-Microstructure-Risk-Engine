@@ -1,0 +1,41 @@
+{
+  "config_hash": "e7d5f33531cadac8503a6d72ed3110af6addc80dbbed0dd2a92dbeb3eee10f9f",
+  "agg_trades": {
+    "rows_total": 1,
+    "rows_per_day": {
+      "2025-01-01": 1
+    },
+    "min_ts_utc": "2025-01-01T00:00:00+00:00",
+    "max_ts_utc": "2025-01-01T00:00:00+00:00"
+  },
+  "book_depth": {
+    "rows_total": 1,
+    "rows_per_day": {
+      "2025-01-01": 1
+    },
+    "min_ts_utc": "2025-01-01T00:00:00+00:00",
+    "max_ts_utc": "2025-01-01T00:00:00+00:00",
+    "sampling_rate_sec": null
+  },
+  "bars_1m": {
+    "count": 1,
+    "missing_minutes_ratio": 0.9993055555555556
+  },
+  "bars_5m": {
+    "count": 1
+  },
+  "regime": {
+    "RANGE": 1
+  },
+  "entries_5m": {
+    "events_count": 1
+  },
+  "event_source": "baseline_entries",
+  "baseline": {
+    "trades_count": 1
+  },
+  "hazard": {
+    "enabled": true,
+    "reason_if_disabled": null
+  }
+}

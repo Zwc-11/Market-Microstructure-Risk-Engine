@@ -1,0 +1,22 @@
+{
+  "config_hash": "864c923479eeb276782ee56533a4a60ff4048bbf19264325636d32d95fa24eda",
+  "features": {
+    "feat1": {
+      "missing_frac": 0.0,
+      "mean": 0.0,
+      "std": 1.0,
+      "min": 0.0,
+      "max": 0.0,
+      "outlier_frac": 0.0,
+      "drift_z": 0.0
+    }
+  },
+  "metadata": {
+    "hazard_enabled": 1,
+    "coverage": {
+      "book_depth": 0.0006944444444444445,
+      "agg_trades": 0.0006944444444444445,
+      "klines_1m": 0.0006944444444444445
+    }
+  }
+}

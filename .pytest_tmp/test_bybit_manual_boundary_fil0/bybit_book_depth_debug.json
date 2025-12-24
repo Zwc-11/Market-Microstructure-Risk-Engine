@@ -1,0 +1,22 @@
+{
+  "files_scanned": [],
+  "files_skipped_out_of_range": 1,
+  "rows_seen": 0,
+  "rows_emitted": 0,
+  "rows_kept": 0,
+  "min_ts_seen": null,
+  "max_ts_seen": null,
+  "min_ts_emitted": null,
+  "max_ts_emitted": null,
+  "symbols": {},
+  "type_counts": {},
+  "u_eq_1_count": 0,
+  "requested_start": "2025-12-02",
+  "requested_end": "2025-12-03",
+  "requested_start_ms": 1764633600000,
+  "requested_end_ms": 1764720000000,
+  "min_ts_utc": null,
+  "max_ts_utc": null,
+  "min_ts_emitted_utc": null,
+  "max_ts_emitted_utc": null
+}

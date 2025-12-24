@@ -13,7 +13,7 @@ class Schema:
     primary_key: List[str]
 
 
-L2_LEVELS = 10
+L2_LEVELS = 50
 
 
 def _depth_columns(levels: int) -> Dict[str, str]:
@@ -91,6 +91,15 @@ SCHEMAS: Dict[str, Schema] = {
     "mark_kline": Schema(
         name="mark_kline",
         columns=_KLINE_COLUMNS,
+        primary_key=["symbol", "ts"],
+    ),
+    "funding_rate": Schema(
+        name="funding_rate",
+        columns={
+            "ts": "int64",
+            "funding_rate": "float64",
+            "symbol": "string",
+        },
         primary_key=["symbol", "ts"],
     ),
     "l2_snapshots": Schema(

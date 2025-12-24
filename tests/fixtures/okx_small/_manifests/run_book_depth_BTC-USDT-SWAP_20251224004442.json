@@ -1,0 +1,16 @@
+{
+  "dataset": "book_depth",
+  "symbol": "BTC-USDT-SWAP",
+  "start_ms": 1756684800000,
+  "end_ms": 1756771200000,
+  "auto_download": false,
+  "files": [
+    {
+      "url": "https://example.com/BTC-USDT-SWAP-orderbook-2025-09-01.zip",
+      "filename": "BTC-USDT-SWAP-orderbook-2025-09-01.zip",
+      "local_path": "E:\\100K_strategy\\tests\\fixtures\\okx_small\\book_depth\\BTC-USDT-SWAP\\BTC-USDT-SWAP-orderbook-2025-09-01.zip",
+      "checksum": null,
+      "status": "loaded"
+    }
+  ]
+}

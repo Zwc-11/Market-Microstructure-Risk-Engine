@@ -33,8 +33,9 @@
 - Labeling:
   - Primary: Triple-Barrier labels for each 5m entry event (TP / SL / timeout)
   - Hazard dataset: per-minute labels for active trades
-    - Default y_t = 1 if adverse event (e.g., SL hit or “end event”) occurs within next 5 minutes, else 0
-    - Alternative “end event” definition (drawdown/structure break) is configurable (UNCONFIRMED final)
+    - Default y_t = 1 if adverse event (e.g., SL hit or "end event") occurs within next 5 minutes, else 0
+    - Alternative "end event" definition (drawdown/structure break) is configurable (UNCONFIRMED final)
+  - CUSUM fallback: if entries_5m empty, use CUSUM events on 1m returns + triple-barrier labels to build hazard training events
 - Feature set (Layer C, 1m):
   - Keep: Kyle lambda (rolling impact regression), OFI / multi-level OFI, replenishment/resilience proxies
   - Optional: VPIN as regime/risk toggle (not core alpha)
@@ -51,6 +52,32 @@
 - Binance Vision ingestion:
   - Use daily Binance Vision files (zip) with optional .CHECKSUM verification
   - Supported datasets: klines_1m, agg_trades, book_ticker, book_depth, premium_kline, mark_kline
+- Run-all CLI:
+  - One-shot orchestrator runs build_dataset -> bars/features -> train -> walk-forward backtest
+- OKX ingestion:
+  - OKX manual ingestion enabled via --source okx_manual with local export dirs
+  - Manual L2 orderbook files (.data) are JSONL with bids/asks arrays; store top K levels (default 50)
+  - OKX historical downloader uses /api/v5/public/market-data-history manifest endpoint (dateAggrType + begin/end)
+  - OKX trades map to canonical agg_trades dataset for signed flow features
+  - Orderbook module mapping: level 50 -> module 6, level 400 -> module 4, level 5000 -> module 5 (UNCONFIRMED)
+  - OKX cache_dir + manifest cache, run manifest per fetch
+- Bybit manual ingestion:
+  - BYBIT orderbook manual exports ingested via --source bybit_manual; local state built from snapshot/delta events, emit rows on snapshot/u==1 only (emit_every_delta optional)
+  - Store top K levels (default 50) with padded columns to L2_LEVELS; update_id generated from ts+counter for uniqueness; original u/seq kept in metadata during parse
+  - BYBIT window constraint: 2025-12-01..2025-12-08 (end-exclusive)
+  - BYBIT trades CSV.gz ingestion uses strict schema (timestamp/symbol/side/price/size), streaming chunks, and end-exclusive filtering
+  - BYBIT trades parser normalizes seconds vs ms timestamps (ts < 1e12 treated as seconds)
+  - BYBIT orderbook replays snapshot+delta with monotonic seq/u enforcement, resyncs on gaps, emits snapshots on fixed cadence (default 1000ms)
+- BYBIT run_all memory guardrails:
+  - Load L2 with minimal required columns for enabled features
+  - Scan BYBIT agg_trades partitions for metrics/coverage instead of full in-memory load
+  - Build 1m/5m bars per-day from partitioned agg_trades to limit memory, rebuild if bars don't cover requested window
+- Evidence guardrails:
+  - data_gap_report.json written for missing datasets; run_all fails closed on gaps
+  - min_coverage threshold enforced before run_all proceeds
+  - feature_health_report.json includes missingness/outlier/drift stats
+  - flag diagnostics emitted on churn/over-exiting/model-misalignment
+  - config_hash recorded in evidence artifacts
 
 ## State:
 - Done:
@@ -73,19 +100,41 @@
   - Implemented Phase A data ingestion: Binance USD-M REST klines + aggTrades, storage/manifest validation, build_dataset CLI, and tests; ran `pytest -q`
   - Implemented Phase C Deepcoin REST klines + trades mapping to canonical schemas; ran `pytest -q`
   - Implemented Binance Vision ingestion with checksum verification, dataset selection, and tests/fixtures; ran `pytest -q`
+  - Implemented run_all CLI orchestration + smoke test; ran `pytest -q`
+  - Implemented OKX manifest-based historical adapter + parsers + build_dataset/run_all updates + tests; ran `pytest -q`
+  - Attempted OKX Phase 1 sanity run (2025-09-01 to 2025-09-04); failed due to empty OKX manifests; wrote artifacts/data_gap_report.json and artifacts/RUN_DIAGNOSIS.md
+  - Implemented BYBIT manual orderbook ingestion + bybit_manual source + tests; ran `pytest -q`
+  - Added BYBIT manual trades CSV.gz detection + strict streaming parser with window filtering; added tests/fixture; ran `pytest -q --basetemp=.pytest_tmp`
+  - Integrated BYBIT manual trades ingestion into build_dataset with streaming parquet writes + diagnostics; added build_dataset smoke test; ran `pytest -q --basetemp=.pytest_tmp`
+  - Updated run_all to build bars from agg_trades when klines missing and to use BYBIT processed trades; adjusted coverage gating + data gap checks; updated config defaults and run_all smoke tests; ran `pytest -q --basetemp=.pytest_tmp`
+  - Allowed baseline-only run when no baseline trades; added seconds-timestamp test for BYBIT trades; ran `pytest -q --basetemp=.pytest_tmp`
+  - Ran BYBIT manual acceptance commands for 1-day and 7-day windows; both completed baseline-only with zero trades
+  - Added BYBIT book replay sampling (per-second cadence + gap/resync tracking) and new sampling debug artifact; updated bybit tests; ran `pytest -q --basetemp=.pytest_tmp`
+  - Added pipeline_health.json reporting with ingest/bars/entries/backtest stats + fail-closed guards; added pipeline health test; ran `pytest -q --basetemp=.pytest_tmp`
+  - Added CUSUM fallback trades for hazard training when entries_5m=0, signal_1m output, and updated run_all smoke tests; ran `pytest -q --basetemp=.pytest_tmp`
+  - Fixed feature timestamp alignment to UTC; fixed isotonic calibrator list bug; filtered high-missingness hazard features before training; ran `pytest -q --basetemp=.pytest_tmp`
+  - Added BYBIT trade partition scanning + per-day bar building in run_all to avoid memory blowups; rebuild bars when window coverage missing; ran `pytest -q --basetemp=.pytest_tmp`
+  - Ran BYBIT manual acceptance commands:
+    - 1-day (2025-12-01..2025-12-02) succeeded with full_policy output
+    - 7-day (2025-12-01..2025-12-08) succeeded baseline-only due to low book_depth coverage outside 12/01
 - Now:
-  - Implement end-to-end evidence run on real data (run_all CLI + artifacts) after Vision ingest is wired
+  - BYBIT manual evidence run complete; hazard disabled on 7-day window because book_depth coverage outside 12/01 is minimal
 - Next:
   - Implement Phase B Binance local order book (WS sync + snapshots/diffs) and L2 storage pipeline
   - Add Deepcoin L2 snapshots/diffs support and throttled backfill
-  - Add run_all CLI for full pipeline (bars -> features -> train -> backtest)
   - Add execution realism + risk kill switches (backtest-only)
   - Set up GitHub Actions CI
 
 ## Open questions (UNCONFIRMED if needed):
 - Data availability:
+  - Manual OKX exports covering 2025-12-01..2025-12-15 (UNCONFIRMED)
+  - BYBIT trades/candles covering 2025-12-01..2025-12-08 (UNCONFIRMED)
+  - BYBIT book_depth coverage beyond 2025-12-01 is minimal in current exports (UNCONFIRMED if more data exists)
+  - OKX historical data availability for 2025-09-01 to 2025-09-04 via manifest endpoint (UNCONFIRMED)
   - Do we have reliable L2 snapshots/updates for Binance + Deepcoin for the same symbols?
   - Do we have cancel/add event flags, or only snapshots?
+  - OKX orderbook module mapping for 400/5000 levels (UNCONFIRMED)
+  - OKX monthly dateAggrType behavior for large ranges (UNCONFIRMED)
 - Exact barriers:
   - Triple-barrier horizons (5m vs 10m) and PT/SL multipliers (sigma/ATR-based) not finalized
 - Universe:
@@ -98,17 +147,36 @@
   - AGENTS.md (agent instructions + coding standards)
   - CONTINUITY.md (this file)
   - configs/default.yaml
-  - src/data/{exchange_base.py,binance.py,deepcoin.py,schemas.py,storage.py}
+  - src/data/{exchange_base.py,binance.py,deepcoin.py,okx.py,okx_manual.py,bybit_manual.py,schemas.py,storage.py}
   - src/utils/http.py
-  - src/cli/build_dataset.py
+  - src/cli/{build_dataset.py,run_all.py}
   - tests/test_data_binance.py, tests/test_data_deepcoin.py, tests/test_storage_manifest.py, tests/test_dataset_build_smoke.py
   - tests/test_vision_parser_klines.py, tests/test_vision_parser_aggtrades.py, tests/test_vision_parser_bookticker.py
   - tests/test_vision_parser_bookdepth.py, tests/test_dataset_build_vision_smoke.py
-  - tests/fixtures/vision/...
+  - tests/test_run_all_smoke.py, tests/test_okx_parser_trades.py, tests/test_okx_parser_bookdepth.py, tests/test_okx_build_dataset_smoke.py
+  - tests/test_okx_manifest.py
+  - tests/fixtures/{vision/,vision_small/,okx_small}/...
+  - tests/test_bybit_trades_gz_filter_window.py
+  - tests/test_bybit_trades_gz_strict_columns.py
+  - tests/fixtures/bybit_trades_small/BTCUSDT2025-12-01.csv.gz
+  - src/cli/build_dataset.py
+  - tests/test_build_dataset_bybit_manual_smoke.py
+  - src/cli/run_all.py
+  - configs/default.yaml
+  - tests/test_run_all_bybit_manual_smoke.py
+  - tests/test_run_all_smoke.py
+  - tests/test_bybit_trades_gz_seconds_timestamp.py
+  - tests/test_bybit_orderbook_replay_emits_snapshots.py
+  - tests/test_pipeline_health_written.py
+  - tests/test_cusum_fallback_events_nonzero.py
 - Commands (planned):
-  - pytest -q
+  - pytest -q --basetemp=.pytest_tmp
+  - python -m src.cli.run_all --config configs/default.yaml --exchange bybit --symbol BTCUSDT --start 2025-12-01 --end 2025-12-02 --source bybit_manual --bybit-manual-root "E:\bybit_manual_exports" --bybit-store-top-levels 50
+  - python -m src.cli.run_all --config configs/default.yaml --exchange bybit --symbol BTCUSDT --start 2025-12-01 --end 2025-12-08 --source bybit_manual --bybit-manual-root "E:\bybit_manual_exports" --bybit-store-top-levels 50
   - python -m src.cli.build_dataset --config configs/default.yaml --exchange binance --symbol BTCUSDT --start 2025-01-01 --end 2025-01-31 --mode rest
   - python -m src.cli.build_dataset --config configs/default.yaml --exchange binance --symbol BTCUSDT --start 2025-01-01 --end 2025-01-31 --source vision --datasets klines_1m,agg_trades,book_ticker,book_depth,premium_kline,mark_kline
   - python -m src.cli.build_dataset --config configs/default.yaml --exchange deepcoin --symbol BTCUSDT --start 2025-01-01 --end 2025-01-31 --mode rest
+  - python -m src.cli.run_all --config configs/default.yaml --exchange okx --symbol BTC-USDT-SWAP --start 2025-09-01 --end 2025-12-01 --source okx_hist --okx-auto-download
+  - python -m src.cli.run_all --config configs/default.yaml --exchange okx --symbol BTC-USDT-SWAP --start 2025-12-01 --end 2025-12-15 --source okx_manual --okx-manual-candles-dir "E:\okx_manual_exports\BTC-USDT-SWAP-candlesticks-2025-12-15" --okx-manual-trades-dir "E:\okx_manual_exports\BTC-USDT-SWAP-trades-2025-12-15" --okx-manual-book-dir "E:\okx_manual_exports\BTC-USDT-SWAP-L2orderbook-400lv-2025-12-15" --okx-store-top-levels 50
   - python -m src.cli.train --config configs/default.yaml
   - python -m src.cli.backtest --config configs/default.yaml

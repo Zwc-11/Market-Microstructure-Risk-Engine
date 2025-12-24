@@ -1,0 +1,21 @@
+{
+  "schema_version": "v1",
+  "dataset_name": "book_depth",
+  "exchange": "binance",
+  "market": "usdm",
+  "symbol": "BTCUSDT",
+  "time_range_covered": [
+    1735689600000,
+    1735689601000
+  ],
+  "row_count": 2,
+  "files": [
+    {
+      "path": "binance\\usdm\\BTCUSDT\\book_depth\\date=2025-01-01\\part-000.parquet",
+      "sha256": "4f24bb979cff90bc8b89ea8ef9cddf0074689f314eee9b66ed622a1172567795",
+      "size_bytes": 102137,
+      "mtime": 1766539190
+    }
+  ],
+  "created_at": "2025-12-24T01:19:50.655467+00:00"
+}

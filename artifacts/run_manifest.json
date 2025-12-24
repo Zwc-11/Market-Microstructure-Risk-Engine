@@ -1,0 +1,77 @@
+{
+  "source": "bybit_manual",
+  "symbol": "BTCUSDT",
+  "start_ms": 1764547200000,
+  "end_ms": 1764633600000,
+  "files": [
+    {
+      "dataset": "book_depth",
+      "path": "E:\\bybit_manual_exports\\2025-12-01_BTCUSDT_ob200.data\\2025-12-01_BTCUSDT_ob200.data",
+      "sha256": "06210755ff60711cbe4364e651cb6992e235603e6edb6c1a1c71679434b3a2a9",
+      "container": "raw",
+      "format": "json",
+      "inner_name": null
+    },
+    {
+      "dataset": "agg_trades",
+      "path": "E:\\bybit_manual_exports\\BTCUSDT2025-12-01.csv.gz"
+    },
+    {
+      "dataset": "agg_trades",
+      "path": "E:\\bybit_manual_exports\\BTCUSDT2025-12-02.csv.gz"
+    },
+    {
+      "dataset": "agg_trades",
+      "path": "E:\\bybit_manual_exports\\BTCUSDT2025-12-03.csv.gz"
+    },
+    {
+      "dataset": "agg_trades",
+      "path": "E:\\bybit_manual_exports\\BTCUSDT2025-12-04.csv.gz"
+    },
+    {
+      "dataset": "agg_trades",
+      "path": "E:\\bybit_manual_exports\\BTCUSDT2025-12-05.csv.gz"
+    },
+    {
+      "dataset": "agg_trades",
+      "path": "E:\\bybit_manual_exports\\BTCUSDT2025-12-06.csv.gz"
+    },
+    {
+      "dataset": "agg_trades",
+      "path": "E:\\bybit_manual_exports\\BTCUSDT2025-12-07.csv.gz"
+    }
+  ],
+  "datasets": {
+    "book_depth": {
+      "rows": 86399,
+      "date_coverage": {
+        "2025-12-01": 86399
+      }
+    },
+    "agg_trades": {
+      "rows": 3669773,
+      "partitions": [
+        {
+          "date": "2025-12-01",
+          "path": "agg_trades\\exchange=bybit\\symbol=BTCUSDT\\date=2025-12-01\\part-000.parquet",
+          "rows": 2000000
+        },
+        {
+          "date": "2025-12-01",
+          "path": "agg_trades\\exchange=bybit\\symbol=BTCUSDT\\date=2025-12-01\\part-001.parquet",
+          "rows": 1669773
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "book_depth_debug": {
+      "rows_seen": 863929,
+      "rows_emitted": 86401,
+      "rows_kept": 86399,
+      "min_ts_seen": 1764547201121,
+      "max_ts_seen": 1764633601117
+    }
+  },
+  "stored_depth": 50
+}

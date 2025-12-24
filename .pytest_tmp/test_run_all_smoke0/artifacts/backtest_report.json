@@ -1,0 +1,18 @@
+{
+  "config_hash": "864c923479eeb276782ee56533a4a60ff4048bbf19264325636d32d95fa24eda",
+  "exchange": "binance",
+  "symbol": "BTCUSDT",
+  "start": "2025-01-01",
+  "end": "2025-01-02",
+  "folds": 1,
+  "summary_mean": {
+    "fold_id": 0.0,
+    "baseline_pnl_net": 0.0,
+    "enhanced_pnl_net": 0.0
+  },
+  "summary_median": {
+    "fold_id": 0.0,
+    "baseline_pnl_net": 0.0,
+    "enhanced_pnl_net": 0.0
+  }
+}

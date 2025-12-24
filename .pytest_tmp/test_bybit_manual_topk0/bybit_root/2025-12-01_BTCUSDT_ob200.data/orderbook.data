@@ -1,0 +1,3 @@
+{"topic":"orderbook.200.BTCUSDT","type":"snapshot","ts":1764547200000,"data":{"s":"BTCUSDT","seq":100,"u":100,"a":[["50010","1"],["50020","2"]],"b":[["50000","1.5"],["49990","0.5"]]}}
+{"topic":"orderbook.200.BTCUSDT","type":"delta","ts":1764547205000,"data":{"s":"BTCUSDT","seq":101,"u":101,"a":[["50020","0"]],"b":[["50005","1.0"]]}}
+{"topic":"orderbook.200.BTCUSDT","type":"delta","ts":1764547210000,"data":{"s":"BTCUSDT","seq":102,"u":1,"a":[["50030","1"]],"b":[["49980","2"]]}}

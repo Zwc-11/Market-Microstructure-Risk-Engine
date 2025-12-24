@@ -1,0 +1,36 @@
+{
+  "files_scanned": [
+    {
+      "dataset": "book_depth",
+      "path": "E:\\bybit_manual_exports\\2025-12-01_BTCUSDT_ob200.data\\2025-12-01_BTCUSDT_ob200.data",
+      "sha256": "06210755ff60711cbe4364e651cb6992e235603e6edb6c1a1c71679434b3a2a9",
+      "container": "raw",
+      "format": "json",
+      "inner_name": null
+    }
+  ],
+  "files_skipped_out_of_range": 6,
+  "rows_seen": 863929,
+  "rows_emitted": 86401,
+  "rows_kept": 86399,
+  "min_ts_seen": 1764547201121,
+  "max_ts_seen": 1764633601117,
+  "min_ts_emitted": 1764547201121,
+  "max_ts_emitted": 1764633601014,
+  "symbols": {
+    "BTCUSDT": 863929
+  },
+  "type_counts": {
+    "snapshot": 2,
+    "delta": 863927
+  },
+  "u_eq_1_count": 0,
+  "requested_start": "2025-12-01",
+  "requested_end": "2025-12-02",
+  "requested_start_ms": 1764547200000,
+  "requested_end_ms": 1764633600000,
+  "min_ts_utc": "2025-12-01T00:00:01.121000+00:00",
+  "max_ts_utc": "2025-12-02T00:00:01.117000+00:00",
+  "min_ts_emitted_utc": "2025-12-01T00:00:01.121000+00:00",
+  "max_ts_emitted_utc": "2025-12-02T00:00:01.014000+00:00"
+}

@@ -309,6 +309,12 @@ def _parse_book_depth_df(df: pd.DataFrame, symbol: str, depth_levels: int) -> pd
             out[f"{side}_price_{lvl}"] = _coerce_numeric(df[price_col]) if price_col else nan_value
             out[f"{side}_size_{lvl}"] = _coerce_numeric(df[size_col]) if size_col else nan_value
 
+    if depth_levels < L2_LEVELS:
+        for lvl in range(depth_levels + 1, L2_LEVELS + 1):
+            for side in ("bid", "ask"):
+                out[f"{side}_price_{lvl}"] = nan_value
+                out[f"{side}_size_{lvl}"] = nan_value
+
     out["symbol"] = symbol
     return enforce_schema(out, SCHEMAS["book_depth"])
 

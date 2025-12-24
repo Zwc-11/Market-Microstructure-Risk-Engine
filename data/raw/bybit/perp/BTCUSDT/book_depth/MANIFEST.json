@@ -1,0 +1,57 @@
+{
+  "schema_version": "v1",
+  "dataset_name": "book_depth",
+  "exchange": "bybit",
+  "market": "perp",
+  "symbol": "BTCUSDT",
+  "time_range_covered": [
+    1764547201121,
+    1765065601115
+  ],
+  "row_count": 86412,
+  "files": [
+    {
+      "path": "bybit\\perp\\BTCUSDT\\book_depth\\date=2025-12-01\\part-000.parquet",
+      "sha256": "11f589280a9d982c0dacfbedf1cf9f7e3ee4341a5e6ad2033798e2b411566cc7",
+      "size_bytes": 42356187,
+      "mtime": 1766535470
+    },
+    {
+      "path": "bybit\\perp\\BTCUSDT\\book_depth\\date=2025-12-02\\part-000.parquet",
+      "sha256": "9017a813f503ae1be349cef838018697a161f75642e7aaf0379c17f45ad7e8c1",
+      "size_bytes": 120859,
+      "mtime": 1766528870
+    },
+    {
+      "path": "bybit\\perp\\BTCUSDT\\book_depth\\date=2025-12-03\\part-000.parquet",
+      "sha256": "008e96ac15e11c13a8036c4532e42f16245d6efdf1634874cfcf295360cf22dd",
+      "size_bytes": 120859,
+      "mtime": 1766528871
+    },
+    {
+      "path": "bybit\\perp\\BTCUSDT\\book_depth\\date=2025-12-04\\part-000.parquet",
+      "sha256": "9cbe78d6f31e801369018903b3f68c5858994ceaeaf3af909441fafba56a0039",
+      "size_bytes": 120859,
+      "mtime": 1766528871
+    },
+    {
+      "path": "bybit\\perp\\BTCUSDT\\book_depth\\date=2025-12-05\\part-000.parquet",
+      "sha256": "5c40ad11e968a8715727466bffe38afc1c689177a92ac24bd3599713902848d7",
+      "size_bytes": 120859,
+      "mtime": 1766528871
+    },
+    {
+      "path": "bybit\\perp\\BTCUSDT\\book_depth\\date=2025-12-06\\part-000.parquet",
+      "sha256": "87c0eaa0e9d54f8e3145d889b467684613014773edfa34558e718524238ed076",
+      "size_bytes": 120859,
+      "mtime": 1766528871
+    },
+    {
+      "path": "bybit\\perp\\BTCUSDT\\book_depth\\date=2025-12-07\\part-000.parquet",
+      "sha256": "585bfabdbab6be96539935f1e9a55403161ebf572c29bb4665d3b0f168cc2b56",
+      "size_bytes": 120859,
+      "mtime": 1766528871
+    }
+  ],
+  "created_at": "2025-12-24T00:17:50.834795+00:00"
+}

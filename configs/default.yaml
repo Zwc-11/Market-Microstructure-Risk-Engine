@@ -25,6 +25,16 @@ data:
       symbols: []            # UNCONFIRMED: fill when you have data access
       depth_levels: 10
       use_l2: true
+    - name: "okx"
+      market: "swap"
+      symbols: ["BTC-USDT-SWAP"]
+      depth_levels: 10
+      use_l2: true
+    - name: "bybit"
+      market: "perp"
+      symbols: ["BTCUSDT"]
+      depth_levels: 50
+      use_l2: true
 
   time_range:
     # Use ISO dates; pipeline should support partial downloads
@@ -36,6 +46,35 @@ data:
     require_monotonic_timestamps: true
     drop_duplicate_timestamps_keep: "last"  # last|first
     max_gap_seconds: 120  # warning threshold
+    min_coverage: 0.95
+
+  okx:
+    history_endpoint: "https://www.okx.com/api/v5/public/market-data-history"
+    cache_dir: "data/okx"
+    depth_levels: 10
+    orderbook_level: 50
+    date_aggr_type: "daily"
+    manual:
+      candles_dir: 'E:\okx_manual_exports\BTC-USDT-SWAP-candlesticks-2025-12-15'
+      trades_dir: 'E:\okx_manual_exports\BTC-USDT-SWAP-trades-2025-12-15'
+      book_dir: 'E:\okx_manual_exports\BTC-USDT-SWAP-L2orderbook-400lv-2025-12-15'
+      store_top_levels: 50
+      allow_baseline_only: false
+  bybit:
+    manual:
+      root: 'E:\bybit_manual_exports'
+      store_top_levels: 50
+      book_sample_ms: 1000
+      emit_every_delta: false
+      allow_baseline_only: false
+
+data_health:
+  min_coverage: 0.95
+
+costs:
+  taker_fee_bps: 4.0
+  maker_fee_bps: 2.0
+  slippage_bps: 2.0
 
 bars:
   # Build 1m bars and aggregate to 5m

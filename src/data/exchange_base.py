@@ -7,6 +7,13 @@ import requests
 
 from src.utils.http import request_json
 
+EXCHANGE_SUPPORTED_DATASETS = {
+    "binance": ["klines_1m", "agg_trades", "book_ticker", "book_depth", "premium_kline", "mark_kline"],
+    "deepcoin": ["klines_1m", "agg_trades"],
+    "okx": ["trades", "book_depth", "book_ticker", "funding_rate"],
+    "bybit": ["klines_1m", "agg_trades", "book_depth"],
+}
+
 
 class ExchangeBase:
     def __init__(

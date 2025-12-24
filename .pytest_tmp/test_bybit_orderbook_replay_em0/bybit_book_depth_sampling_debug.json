@@ -1,0 +1,17 @@
+{
+  "events_seen": 3,
+  "snapshots_seen": 1,
+  "deltas_seen": 2,
+  "snapshots_emitted": 3,
+  "min_ts": 1764547200000,
+  "max_ts": 1764547215000,
+  "gap_count": 0,
+  "resync_count": 1,
+  "sample_ms": 1000,
+  "requested_start": "2025-12-01",
+  "requested_end": "2025-12-02",
+  "requested_start_ms": 1764547200000,
+  "requested_end_ms": 1764633600000,
+  "min_ts_utc": "2025-12-01T00:00:00+00:00",
+  "max_ts_utc": "2025-12-01T00:00:15+00:00"
+}

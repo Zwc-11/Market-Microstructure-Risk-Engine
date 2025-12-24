@@ -37,7 +37,9 @@ def generate_walkforward_folds(
     if train_days <= 0 or test_days <= 0 or step_days <= 0:
         raise ValueError("train_days, test_days, step_days must be positive")
 
-    index = pd.DatetimeIndex(index).sort_values()
+    index = pd.DatetimeIndex(index).dropna().sort_values()
+    if index.empty:
+        raise ValueError("index must contain at least one valid timestamp")
     start = index.min()
     end = index.max()
     embargo = pd.Timedelta(minutes=embargo_minutes)

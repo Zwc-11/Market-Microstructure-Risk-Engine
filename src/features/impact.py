@@ -4,6 +4,21 @@ from typing import Dict, Optional
 
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_datetime64_any_dtype, is_numeric_dtype
+
+
+def _coerce_timestamp(series: pd.Series) -> pd.Series:
+    if is_datetime64_any_dtype(series):
+        return pd.to_datetime(series, utc=True)
+    if is_numeric_dtype(series):
+        values = pd.to_numeric(series, errors="coerce")
+        if values.notna().any():
+            median = float(values.dropna().median())
+        else:
+            median = 0.0
+        unit = "ms" if median >= 1_000_000_000_000 else "s"
+        return pd.to_datetime(values, unit=unit, utc=True)
+    return pd.to_datetime(series, utc=True)
 
 
 def _ensure_datetime_index(df: pd.DataFrame, time_col: Optional[str]) -> pd.DataFrame:
@@ -11,22 +26,45 @@ def _ensure_datetime_index(df: pd.DataFrame, time_col: Optional[str]) -> pd.Data
         if time_col not in df.columns:
             raise ValueError(f"time_col '{time_col}' not found in data")
         df = df.copy()
-        df[time_col] = pd.to_datetime(df[time_col])
+        df[time_col] = _coerce_timestamp(df[time_col])
         df = df.set_index(time_col)
 
     if not isinstance(df.index, pd.DatetimeIndex):
         if "timestamp" in df.columns:
             df = df.copy()
-            df["timestamp"] = pd.to_datetime(df["timestamp"])
+            df["timestamp"] = _coerce_timestamp(df["timestamp"])
             df = df.set_index("timestamp")
         elif "ts" in df.columns:
             df = df.copy()
-            df["ts"] = pd.to_datetime(df["ts"])
+            df["ts"] = _coerce_timestamp(df["ts"])
             df = df.set_index("ts")
         else:
             raise ValueError("data must have a DatetimeIndex or timestamp/ts column")
+    else:
+        df = df.copy()
+        if df.index.tz is None:
+            df.index = df.index.tz_localize("UTC")
+        else:
+            df.index = df.index.tz_convert("UTC")
 
     return df.sort_index()
+
+
+def _ensure_series_datetime_index(series: pd.Series) -> pd.Series:
+    if not isinstance(series.index, pd.DatetimeIndex):
+        idx = _coerce_timestamp(pd.Series(series.index))
+        out = series.copy()
+        out.index = pd.DatetimeIndex(idx)
+        return out.sort_index()
+
+    idx = series.index
+    if idx.tz is None:
+        idx = idx.tz_localize("UTC")
+    else:
+        idx = idx.tz_convert("UTC")
+    out = series.copy()
+    out.index = idx
+    return out.sort_index()
 
 
 def _get_price_col(bars: pd.DataFrame, price_col: Optional[str]) -> str:
@@ -64,6 +102,7 @@ def compute_kyle_lambda(
     price = bars[price_col].astype(float)
 
     y = price.diff()
+    signed_flow = _ensure_series_datetime_index(signed_flow)
     x = signed_flow.reindex(bars.index).astype(float)
 
     cov_xy = x.rolling(window=window, min_periods=window).cov(y)

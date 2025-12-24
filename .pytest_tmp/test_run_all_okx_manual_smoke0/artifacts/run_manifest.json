@@ -1,0 +1,62 @@
+{
+  "source": "okx_manual",
+  "symbol": "BTC-USDT-SWAP",
+  "start_ms": 1764547200000,
+  "end_ms": 1764633600000,
+  "files": [
+    {
+      "dataset": "klines_1m",
+      "path": "E:\\100K_strategy\\tests\\fixtures\\okx_manual_small\\candles\\candles.csv",
+      "sha256": "6dd333c5bee6aa4d863ee5a9eb52848e67b3cd88e27df4447dc9cef1923c0613",
+      "container": "raw",
+      "format": "csv",
+      "inner_name": null,
+      "rows_parsed": 2,
+      "rows_kept": 2
+    },
+    {
+      "dataset": "agg_trades",
+      "path": "E:\\100K_strategy\\tests\\fixtures\\okx_manual_small\\trades\\trades.csv",
+      "sha256": "30b7d1463c5564d7b480430477e5e2bcb957467fd9cfc2c4acbccb880f6bfb22",
+      "container": "raw",
+      "format": "csv",
+      "inner_name": null,
+      "rows_parsed": 2,
+      "rows_kept": 2
+    },
+    {
+      "dataset": "book_depth",
+      "path": "E:\\100K_strategy\\tests\\fixtures\\okx_manual_small\\book\\book.jsonl",
+      "sha256": "fb208da9b29ccd7c6e2635b720ca42ab1146614426e67d2b7431a6181596431b",
+      "container": "raw",
+      "format": "jsonl",
+      "inner_name": null,
+      "rows_parsed": 2,
+      "rows_kept": 2
+    }
+  ],
+  "datasets": {
+    "book_depth": {
+      "date_coverage": {
+        "2025-12-01": 2
+      },
+      "rows": 0
+    },
+    "klines_1m": {
+      "rows": 2,
+      "date_coverage": {
+        "2025-12-01": 2
+      }
+    },
+    "agg_trades": {
+      "rows": 2,
+      "date_coverage": {
+        "2025-12-01": 2
+      }
+    }
+  },
+  "metadata": {
+    "source_depth": 2
+  },
+  "stored_depth": 2
+}

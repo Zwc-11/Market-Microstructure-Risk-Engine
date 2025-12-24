@@ -87,9 +87,12 @@ def compute_summary(
 
 def compute_tail_metrics(trades: pd.DataFrame) -> Dict[str, float]:
     if trades.empty:
-        return {"worst_5pct_trade": 0.0, "worst_week_pnl": 0.0}
+        return {"worst_5pct_trade": 0.0, "expected_shortfall_95": 0.0, "worst_week_pnl": 0.0}
 
     worst_5pct = float(trades["net_pnl"].quantile(0.05))
+    cutoff = max(1, int(np.ceil(0.05 * len(trades))))
+    tail = trades["net_pnl"].nsmallest(cutoff)
+    expected_shortfall = float(tail.mean()) if not tail.empty else 0.0
     if "exit_ts" in trades.columns:
         exit_ts = pd.to_datetime(trades["exit_ts"])
         weekly = trades.copy()
@@ -99,7 +102,11 @@ def compute_tail_metrics(trades: pd.DataFrame) -> Dict[str, float]:
     else:
         worst_week = 0.0
 
-    return {"worst_5pct_trade": worst_5pct, "worst_week_pnl": worst_week}
+    return {
+        "worst_5pct_trade": worst_5pct,
+        "expected_shortfall_95": expected_shortfall,
+        "worst_week_pnl": worst_week,
+    }
 
 
 def compute_time_in_trade(trades: pd.DataFrame) -> float:

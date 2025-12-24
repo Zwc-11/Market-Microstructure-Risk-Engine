@@ -1,0 +1,12 @@
+{
+  "config_hash": "17b527dbb26c3e4556c2b91a73840c7980815d72d4f2f1653053d621698b4ed9",
+  "exchange": "okx",
+  "symbol": "BTC-USDT-SWAP",
+  "start": "2025-12-01",
+  "end": "2025-12-02",
+  "missing": [],
+  "coverage": {
+    "book_depth": 0.0006944444444444445,
+    "agg_trades": 0.0006944444444444445
+  }
+}

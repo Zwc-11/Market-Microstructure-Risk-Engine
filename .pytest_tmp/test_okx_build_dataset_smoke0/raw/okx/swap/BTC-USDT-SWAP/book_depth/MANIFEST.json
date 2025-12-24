@@ -1,0 +1,21 @@
+{
+  "schema_version": "v1",
+  "dataset_name": "book_depth",
+  "exchange": "okx",
+  "market": "swap",
+  "symbol": "BTC-USDT-SWAP",
+  "time_range_covered": [
+    1756684800000,
+    1756684801000
+  ],
+  "row_count": 2,
+  "files": [
+    {
+      "path": "okx\\swap\\BTC-USDT-SWAP\\book_depth\\date=2025-09-01\\part-000.parquet",
+      "sha256": "1adccd52e3f2d4d8ba6a995d11947985e54c77272aeec727b758a72c8b3d55ac",
+      "size_bytes": 102101,
+      "mtime": 1766539190
+    }
+  ],
+  "created_at": "2025-12-24T01:19:50.877268+00:00"
+}

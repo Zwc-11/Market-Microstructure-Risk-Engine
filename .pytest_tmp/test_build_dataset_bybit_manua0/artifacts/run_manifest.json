@@ -1,0 +1,24 @@
+{
+  "source": "bybit_manual",
+  "symbol": "BTCUSDT",
+  "start_ms": 1764547200000,
+  "end_ms": 1764633600000,
+  "files": [
+    {
+      "dataset": "agg_trades",
+      "path": "E:\\100K_strategy\\tests\\fixtures\\bybit_trades_small\\BTCUSDT2025-12-01.csv.gz"
+    }
+  ],
+  "datasets": {
+    "agg_trades": {
+      "rows": 4,
+      "partitions": [
+        {
+          "date": "2025-12-01",
+          "path": "agg_trades\\exchange=bybit\\symbol=BTCUSDT\\date=2025-12-01\\part-000.parquet",
+          "rows": 4
+        }
+      ]
+    }
+  }
+}

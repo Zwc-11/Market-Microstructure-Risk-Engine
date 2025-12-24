@@ -18,9 +18,16 @@ def _config(tmp_path: Path) -> dict:
     }
 
 
+def _vision_root() -> Path:
+    path = Path(__file__).resolve().parent / "fixtures" / "vision_small"
+    if not path.exists():
+        raise FileNotFoundError("Vision fixtures not found")
+    return path
+
+
 def test_build_dataset_vision_smoke(tmp_path):
     cfg = _config(tmp_path)
-    vision_root = Path(__file__).resolve().parent / "fixtures" / "vision"
+    vision_root = _vision_root()
 
     build_mod.build_dataset(
         cfg,
@@ -32,6 +39,7 @@ def test_build_dataset_vision_smoke(tmp_path):
         datasets="klines_1m,agg_trades,book_ticker,book_depth",
         build_bars=False,
         vision_dir=str(vision_root),
+        vision_auto_download=False,
     )
 
     raw_dir = Path(cfg["paths"]["raw_dir"])

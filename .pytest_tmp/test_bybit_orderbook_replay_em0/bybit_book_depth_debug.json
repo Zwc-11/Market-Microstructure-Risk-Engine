@@ -1,0 +1,36 @@
+{
+  "files_scanned": [
+    {
+      "dataset": "book_depth",
+      "path": "E:\\100K_strategy\\.pytest_tmp\\test_bybit_orderbook_replay_em0\\bybit_root\\2025-12-01_BTCUSDT_ob200.data\\orderbook.data",
+      "sha256": "e1828f717a1c4664b3f496aca755eb0fa9c1aec4d67dbbabe36c5fd8f8cac389",
+      "container": "raw",
+      "format": "jsonl",
+      "inner_name": null
+    }
+  ],
+  "files_skipped_out_of_range": 0,
+  "rows_seen": 3,
+  "rows_emitted": 3,
+  "rows_kept": 3,
+  "min_ts_seen": 1764547200000,
+  "max_ts_seen": 1764547215000,
+  "min_ts_emitted": 1764547200000,
+  "max_ts_emitted": 1764547215000,
+  "symbols": {
+    "BTCUSDT": 3
+  },
+  "type_counts": {
+    "snapshot": 1,
+    "delta": 2
+  },
+  "u_eq_1_count": 1,
+  "requested_start": "2025-12-01",
+  "requested_end": "2025-12-02",
+  "requested_start_ms": 1764547200000,
+  "requested_end_ms": 1764633600000,
+  "min_ts_utc": "2025-12-01T00:00:00+00:00",
+  "max_ts_utc": "2025-12-01T00:00:15+00:00",
+  "min_ts_emitted_utc": "2025-12-01T00:00:00+00:00",
+  "max_ts_emitted_utc": "2025-12-01T00:00:15+00:00"
+}

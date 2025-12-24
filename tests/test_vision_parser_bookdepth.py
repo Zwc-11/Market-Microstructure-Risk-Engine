@@ -11,7 +11,10 @@ from src.data.binance import BinanceVision
 
 
 def _vision_root() -> Path:
-    return Path(__file__).resolve().parent / "fixtures" / "vision"
+    path = Path(__file__).resolve().parent / "fixtures" / "vision_small"
+    if not path.exists():
+        raise FileNotFoundError("Vision fixtures not found")
+    return path
 
 
 def test_vision_parser_bookdepth():
