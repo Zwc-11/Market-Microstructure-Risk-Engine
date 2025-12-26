@@ -5,6 +5,7 @@
       "path": "E:\\100K_strategy\\tests\\fixtures\\bybit_trades_small\\BTCUSDT2025-12-01.csv.gz"
     }
   ],
+  "files_skipped_cached": [],
   "files_used": [
     {
       "date": "2025-12-01",

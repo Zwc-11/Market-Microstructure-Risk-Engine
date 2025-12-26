@@ -1,0 +1,34 @@
+{
+  "rows_seen": 7247231,
+  "rows_parsed_ok": 7247231,
+  "rows_kept": 0,
+  "min_ts_seen": 1765756800002,
+  "max_ts_seen": 1765843199994,
+  "min_ts_utc": "2025-12-15T00:00:00.002000+00:00",
+  "max_ts_utc": "2025-12-15T23:59:59.994000+00:00",
+  "instId_counts": {
+    "BTC-USDT-SWAP": 7247231
+  },
+  "action_counts": {
+    "snapshot": 96,
+    "update": 7247135
+  },
+  "bid_levels_max": 800,
+  "ask_levels_max": 800,
+  "bid_level_columns": {
+    "3": 6186057
+  },
+  "ask_level_columns": {
+    "3": 6340392
+  },
+  "requested_start": "2025-12-01",
+  "requested_end": "2025-12-15",
+  "requested_start_ms": 1764547200000,
+  "requested_end_ms": 1765756800000,
+  "instId_top5": [
+    {
+      "instId": "BTC-USDT-SWAP",
+      "count": 7247231
+    }
+  ]
+}

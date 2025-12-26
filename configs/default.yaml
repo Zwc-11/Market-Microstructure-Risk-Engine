@@ -112,6 +112,10 @@ regime:
 strategy:
   entries_5m:
     # 5m entry logic
+    subtypes:
+      trend_pullback_long: true
+      trend_pullback_short: true
+      range_vwap_band: true
     range:
       enabled: true
       center:
@@ -131,6 +135,10 @@ strategy:
         kind: "atr"
         atr_window_5m_bars: 14
         tolerance_atr: 0.3
+        long_filter:
+          enabled: false
+          require_ema_fast_slope_positive: true
+          confirm_bars: 2
 
 labeling:
   # Event sampling (optional) + triple barrier labeling (core)
@@ -159,6 +167,15 @@ labeling:
       # If both PT and SL are crossed within same bar (gap), choose:
       # "first_touch" (needs intra-bar high/low checks), else fallback "worst_case"
       mode: "worst_case"  # first_touch|worst_case|best_case
+    by_regime:
+      TREND:
+        horizon: 12
+        pt_mult: 1.2
+        sl_mult: 1.0
+      RANGE:
+        horizon: 8
+        pt_mult: 0.8
+        sl_mult: 1.2
 
 hazard:
   # 1m hazard meter dataset + policy horizon
@@ -227,6 +244,29 @@ model:
         train_days: 20
         test_days: 5
         step_days: 5
+
+  meta:
+    enabled: false
+    threshold: 0.55
+    include_microstructure: true
+    max_micro_features: 20
+    intrabar:
+      lookback_min: 5
+    preprocessing:
+      standardize: true
+      clip_zscore: 10.0
+    training:
+      class_weight: "balanced"
+      calibration:
+        enabled: true
+        method: "isotonic"
+      validation:
+        method: "purged_walk_forward"
+        embargo_minutes: 10
+        splits:
+          train_days: 20
+          test_days: 5
+          step_days: 5
 
 policy:
   # How hazard probabilities turn into actions

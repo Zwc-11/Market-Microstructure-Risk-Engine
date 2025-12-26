@@ -1,0 +1,12 @@
+{
+  "status": "ok",
+  "recommended_threshold": 0.25,
+  "accepted_trade_count": 31,
+  "accept_rate_vs_baseline": 0.21232876712328766,
+  "pnl_net": -220.675642051812,
+  "total_fees": 148.80000000000004,
+  "total_slippage": 74.40000000000002,
+  "win_rate": 0.2903225806451613,
+  "expected_shortfall_95": -22.36191309902663,
+  "min_required": 29
+}

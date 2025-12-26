@@ -1,6 +1,20 @@
 {
+  "files_discovered": [
+    {
+      "folder": "E:\\100K_strategy\\.pytest_tmp\\test_bybit_manual_boundary_fil0\\bybit_root\\2025-12-01_BTCUSDT_ob200.data",
+      "selected": "E:\\100K_strategy\\.pytest_tmp\\test_bybit_manual_boundary_fil0\\bybit_root\\2025-12-01_BTCUSDT_ob200.data\\orderbook.data",
+      "candidates": [
+        "E:\\100K_strategy\\.pytest_tmp\\test_bybit_manual_boundary_fil0\\bybit_root\\2025-12-01_BTCUSDT_ob200.data\\orderbook.data"
+      ]
+    }
+  ],
+  "files_selected": [
+    "E:\\100K_strategy\\.pytest_tmp\\test_bybit_manual_boundary_fil0\\bybit_root\\2025-12-01_BTCUSDT_ob200.data\\orderbook.data"
+  ],
   "files_scanned": [],
+  "parse_errors": [],
   "files_skipped_out_of_range": 1,
+  "files_skipped_cached": 0,
   "rows_seen": 0,
   "rows_emitted": 0,
   "rows_kept": 0,
@@ -11,6 +25,13 @@
   "symbols": {},
   "type_counts": {},
   "u_eq_1_count": 0,
+  "ts_scale_counts": {
+    "seconds": 0,
+    "milliseconds": 0,
+    "microseconds": 0,
+    "nanoseconds": 0,
+    "invalid": 0
+  },
   "requested_start": "2025-12-02",
   "requested_end": "2025-12-03",
   "requested_start_ms": 1764633600000,

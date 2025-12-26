@@ -1,0 +1,12 @@
+{
+  "config_hash": "426bb3fe910c80ab2ff8fca86b2d2fba9e775a218ac7b07fabf631f85434dc9a",
+  "exchange": "bybit",
+  "symbol": "BTCUSDT",
+  "start": "2025-12-01",
+  "end": "2025-12-08",
+  "missing": [],
+  "coverage": {
+    "book_depth": 1.0,
+    "agg_trades": 1.0
+  }
+}

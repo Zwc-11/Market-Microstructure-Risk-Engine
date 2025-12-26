@@ -1,0 +1,310 @@
+# configs/stage6_friction_3bps.yaml
+# Stage 6: Reduced friction (3 bps round-trip) configuration
+# Based on: taker_effective 0.5 bps/side + slippage 1.0 bps/side = 3 bps RT
+
+project:
+  name: "100k_strategy_stage6"
+  timezone: "UTC"
+
+paths:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  artifacts_dir: "artifacts/stage6"
+  logs_dir: "logs"
+
+data:
+  exchanges:
+    - name: "bybit"
+      market: "perp"
+      symbols: ["BTCUSDT"]
+      depth_levels: 50
+      use_l2: true
+
+  time_range:
+    start_date: "2025-12-01"
+    end_date: "2025-12-08"
+
+  quality:
+    require_monotonic_timestamps: true
+    drop_duplicate_timestamps_keep: "last"
+    max_gap_seconds: 120
+    min_coverage: 0.95
+
+  bybit:
+    manual:
+      root: 'E:\bybit_manual_exports'
+      store_top_levels: 50
+      book_sample_ms: 1000
+      emit_every_delta: false
+      allow_baseline_only: false
+
+data_health:
+  min_coverage: 0.95
+
+# Stage 6: Reduced friction costs
+# Taker effective: 0.5 bps/side (1.0 bps round-trip)
+# Slippage: 1.0 bps/side (2.0 bps round-trip)
+# Total round-trip: 3.0 bps
+costs:
+  taker_fee_bps: 0.5
+  maker_fee_bps: 0.25
+  slippage_bps: 1.0
+
+bars:
+  base_tf: "1m"
+  entry_tf: "5m"
+
+  price_source:
+    use_mid_ohlc: true
+    use_trade_ohlc: false
+
+  l2:
+    levels: 10
+    snapshot_mode: true
+
+  derived:
+    compute_vwap: true
+    compute_spread: true
+    compute_microprice: true
+
+regime:
+  tf: "5m"
+  windows:
+    rv_window_bars: 12
+    ema_fast_bars: 12
+    ema_slow_bars: 48
+  thresholds:
+    hazard_rv_percentile: 0.90
+    trend_strength_threshold: 1.50
+  outputs:
+    labels: ["TREND", "RANGE", "HAZARD"]
+
+strategy:
+  entries_5m:
+    subtypes:
+      trend_pullback_long: true
+      trend_pullback_short: true
+      range_vwap_band: true
+    range:
+      enabled: true
+      center:
+        kind: "rolling_vwap"
+        window_5m_bars: 12
+      band:
+        kind: "rolling_std_mid"
+        window_5m_bars: 12
+        k: 1.5
+      cooldown_5m_bars: 1
+    trend:
+      enabled: true
+      ema_fast_bars: 12
+      ema_slow_bars: 48
+      pullback:
+        kind: "atr"
+        atr_window_5m_bars: 14
+        tolerance_atr: 0.3
+        long_filter:
+          enabled: true  # Stage 4 best: E4 with long filter
+          require_ema_fast_slope_positive: true
+          confirm_bars: 2
+
+  # Stage 6: Friction parameters for trade gating
+  friction:
+    # Total round-trip friction (fees + slippage)
+    total_round_trip_bps: 3.0
+    # Extra safety buffer for EV gating only (not added to actual costs)
+    buffer_bps: 1.0
+    # Minimum predicted move required (must exceed friction + buffer)
+    min_move_bps: 4.0
+
+  # Touch/box range parameters (Step B)
+  touch:
+    enabled: false  # Will be enabled for E1/E2/E3 experiments
+    epsilon_bps: 5.0  # Distance from level to trigger touch
+    level_window_minutes: 360  # 6 hours lookback for level detection
+    min_level_strength: 3  # Minimum touches to qualify as level
+    box_max_width_bps: 100.0  # Maximum box width
+    T_minutes: 10  # Holding horizon
+    PT_bps: 15.0  # Profit target
+    SL_bps: 15.0  # Stop loss
+    p_threshold: 0.55  # Minimum probability to enter
+    ev_threshold_bps: 0.0  # Minimum EV required
+
+labeling:
+  use_cusum: true
+
+  cusum:
+    tf: "1m"
+    vol_window_1m_bars: 60
+    threshold_k: 3.0
+    gate_entries: false
+
+  triple_barrier:
+    horizon_minutes: 10
+    vol:
+      kind: "ewma"
+      window_1m_bars: 60
+      min_sigma: 1.0e-6
+    barriers:
+      pt_mult: 1.0
+      sl_mult: 1.0
+    price_source: "mid_close"
+    tie_break:
+      mode: "worst_case"
+    by_regime:
+      TREND:
+        horizon: 12
+        pt_mult: 1.2
+        sl_mult: 1.0
+      RANGE:
+        horizon: 8
+        pt_mult: 0.8
+        sl_mult: 1.2
+
+hazard:
+  horizon_minutes: 5
+  feature_window_minutes: 3
+  label_mode: "adverse_barrier"
+  adverse_barrier:
+    which: "SL"
+  end_event:
+    enabled: false
+    kind: "drawdown_or_structure"
+    drawdown:
+      atr_window_1m_bars: 14
+      k_atr: 1.0
+    structure:
+      swing_lookback_1m_bars: 5
+
+features:
+  ofi:
+    enabled: true
+    levels: [1, 5, 10]
+    normalize_by_depth: true
+
+  kyle_lambda:
+    enabled: true
+    window_minutes: 3
+    signed_flow_source: "ofi"
+    separate_up_down: true
+    outputs: ["lambda", "r2", "resid_std", "lambda_up", "lambda_down"]
+
+  replenishment:
+    enabled: true
+    levels: 10
+    eps: 1.0e-9
+    outputs: ["depth_l", "depletion", "replenish", "repl_ratio", "spread_mean", "microprice"]
+
+  vpin:
+    enabled: false
+    bucket_volume: 10000
+    outputs: ["vpin"]
+
+model:
+  type: "logistic_regression"
+  random_state: 42
+
+  preprocessing:
+    standardize: true
+    clip_zscore: 10.0
+
+  training:
+    target: "hazard"
+    class_weight: "balanced"
+    calibration:
+      enabled: true
+      method: "isotonic"
+    validation:
+      method: "purged_walk_forward"
+      embargo_minutes: 10
+      splits:
+        train_days: 5
+        test_days: 2
+        step_days: 2
+
+  meta:
+    enabled: false
+    threshold: 0.35
+    include_microstructure: true
+    max_micro_features: 20
+    intrabar:
+      lookback_min: 5
+    preprocessing:
+      standardize: true
+      clip_zscore: 10.0
+    training:
+      class_weight: "balanced"
+      calibration:
+        enabled: true
+        method: "isotonic"
+      validation:
+        method: "purged_walk_forward"
+        embargo_minutes: 10
+        splits:
+          train_days: 5
+          test_days: 2
+          step_days: 2
+
+  # Touch probability model (Step B4)
+  touch:
+    enabled: false
+    type: "logistic_regression"  # or "lightgbm"
+    random_state: 42
+    class_weight: "balanced"
+    preprocessing:
+      standardize: true
+      clip_zscore: 10.0
+    training:
+      calibration:
+        enabled: true
+        method: "isotonic"
+      validation:
+        method: "purged_walk_forward"
+        embargo_minutes: 10
+        splits:
+          train_days: 5
+          test_days: 2
+          step_days: 2
+
+policy:
+  exit:
+    enabled: true
+    hazard_threshold: 0.70
+    consecutive_minutes: 2
+    require_rising: true
+  fail_fast:
+    enabled: true
+    hazard_threshold: 0.85
+    confirm_signals:
+      require_absorption_spike: false
+      require_replenishment_drop: false
+  add_risk:
+    enabled: true
+    hazard_max_to_add: 0.20
+
+backtest:
+  initial_capital: 10000
+  leverage: 3
+
+  # Stage 6: Reduced friction
+  fees_bps:
+    maker: 0.25
+    taker: 0.5
+
+  slippage_bps: 1.0
+  latency_ms: 0
+
+  sizing:
+    max_risk_per_trade: 0.01
+    max_position_notional_pct: 0.20
+
+  reporting:
+    metrics: ["pnl", "sharpe", "max_drawdown", "win_rate", "avg_win", "avg_loss", "trade_count"]
+    save_trades: true
+
+logging:
+  level: "INFO"
+  log_to_file: true
+
+seed: 42
+

@@ -1,0 +1,7 @@
+# Hazard Model Card
+
+- Config hash: 55c8b4aefd09233af5f1ed3f54bf389ce13c96a68c64f4b8350c964dacf22499
+- Exchange: bybit
+- Symbol: BTCUSDT
+- Date range: 2025-12-01 to 2025-12-08
+- AUC (overall): None

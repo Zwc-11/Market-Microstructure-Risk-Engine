@@ -1,0 +1,287 @@
+[
+  {
+    "threshold": 0.05,
+    "accepted_trade_count": 43,
+    "accept_rate_vs_baseline": 0.4942528735632184,
+    "pnl_net": -262.7895985699632,
+    "expected_net_pnl": -262.7895985699632,
+    "total_fees": 206.40000000000003,
+    "total_slippage": 103.20000000000002,
+    "win_rate": 0.3953488372093023,
+    "expected_shortfall_95": -25.23400140243905,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.4883720930232558
+    }
+  },
+  {
+    "threshold": 0.1,
+    "accepted_trade_count": 38,
+    "accept_rate_vs_baseline": 0.4367816091954023,
+    "pnl_net": -210.2999384287412,
+    "expected_net_pnl": -210.2999384287412,
+    "total_fees": 182.40000000000006,
+    "total_slippage": 91.20000000000003,
+    "win_rate": 0.42105263157894735,
+    "expected_shortfall_95": -25.79435518159699,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.43023255813953487
+    }
+  },
+  {
+    "threshold": 0.15,
+    "accepted_trade_count": 36,
+    "accept_rate_vs_baseline": 0.41379310344827586,
+    "pnl_net": -193.35080082128664,
+    "expected_net_pnl": -193.35080082128664,
+    "total_fees": 172.80000000000004,
+    "total_slippage": 86.40000000000002,
+    "win_rate": 0.4444444444444444,
+    "expected_shortfall_95": -25.79435518159699,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.4069767441860465
+    }
+  },
+  {
+    "threshold": 0.2,
+    "accepted_trade_count": 34,
+    "accept_rate_vs_baseline": 0.39080459770114945,
+    "pnl_net": -164.4970552419504,
+    "expected_net_pnl": -164.4970552419504,
+    "total_fees": 163.20000000000002,
+    "total_slippage": 81.60000000000001,
+    "win_rate": 0.47058823529411764,
+    "expected_shortfall_95": -25.79435518159699,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.38372093023255816
+    }
+  },
+  {
+    "threshold": 0.25,
+    "accepted_trade_count": 28,
+    "accept_rate_vs_baseline": 0.3218390804597701,
+    "pnl_net": -115.30313667336411,
+    "expected_net_pnl": -115.30313667336411,
+    "total_fees": 134.4,
+    "total_slippage": 67.2,
+    "win_rate": 0.4642857142857143,
+    "expected_shortfall_95": -25.79435518159699,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.313953488372093
+    }
+  },
+  {
+    "threshold": 0.3,
+    "accepted_trade_count": 21,
+    "accept_rate_vs_baseline": 0.2413793103448276,
+    "pnl_net": -42.710107238004355,
+    "expected_net_pnl": -42.710107238004355,
+    "total_fees": 100.79999999999998,
+    "total_slippage": 50.39999999999999,
+    "win_rate": 0.5238095238095238,
+    "expected_shortfall_95": -17.800305366923904,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.23255813953488372
+    }
+  },
+  {
+    "threshold": 0.35,
+    "accepted_trade_count": 20,
+    "accept_rate_vs_baseline": 0.22988505747126436,
+    "pnl_net": -40.531357403701286,
+    "expected_net_pnl": -40.531357403701286,
+    "total_fees": 95.99999999999999,
+    "total_slippage": 47.99999999999999,
+    "win_rate": 0.55,
+    "expected_shortfall_95": -19.363520318303724,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.22093023255813954
+    }
+  },
+  {
+    "threshold": 0.4,
+    "accepted_trade_count": 20,
+    "accept_rate_vs_baseline": 0.22988505747126436,
+    "pnl_net": -40.531357403701286,
+    "expected_net_pnl": -40.531357403701286,
+    "total_fees": 95.99999999999999,
+    "total_slippage": 47.99999999999999,
+    "win_rate": 0.55,
+    "expected_shortfall_95": -19.363520318303724,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.22093023255813954
+    }
+  },
+  {
+    "threshold": 0.45,
+    "accepted_trade_count": 19,
+    "accept_rate_vs_baseline": 0.21839080459770116,
+    "pnl_net": -28.282384728507893,
+    "expected_net_pnl": -28.282384728507893,
+    "total_fees": 91.19999999999999,
+    "total_slippage": 45.599999999999994,
+    "win_rate": 0.5789473684210527,
+    "expected_shortfall_95": -19.363520318303724,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.20930232558139536
+    }
+  },
+  {
+    "threshold": 0.5,
+    "accepted_trade_count": 18,
+    "accept_rate_vs_baseline": 0.20689655172413793,
+    "pnl_net": -13.4369117394529,
+    "expected_net_pnl": -13.4369117394529,
+    "total_fees": 86.39999999999999,
+    "total_slippage": 43.199999999999996,
+    "win_rate": 0.6111111111111112,
+    "expected_shortfall_95": -19.363520318303724,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.19767441860465115
+    }
+  },
+  {
+    "threshold": 0.55,
+    "accepted_trade_count": 16,
+    "accept_rate_vs_baseline": 0.1839080459770115,
+    "pnl_net": -5.1154296570720845,
+    "expected_net_pnl": -5.1154296570720845,
+    "total_fees": 76.8,
+    "total_slippage": 38.4,
+    "win_rate": 0.625,
+    "expected_shortfall_95": -19.363520318303724,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.1744186046511628
+    }
+  },
+  {
+    "threshold": 0.6,
+    "accepted_trade_count": 15,
+    "accept_rate_vs_baseline": 0.1724137931034483,
+    "pnl_net": -10.676322513184846,
+    "expected_net_pnl": -10.676322513184846,
+    "total_fees": 71.99999999999999,
+    "total_slippage": 35.99999999999999,
+    "win_rate": 0.6,
+    "expected_shortfall_95": -19.363520318303724,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.16279069767441862
+    }
+  },
+  {
+    "threshold": 0.65,
+    "accepted_trade_count": 15,
+    "accept_rate_vs_baseline": 0.1724137931034483,
+    "pnl_net": -10.676322513184846,
+    "expected_net_pnl": -10.676322513184846,
+    "total_fees": 71.99999999999999,
+    "total_slippage": 35.99999999999999,
+    "win_rate": 0.6,
+    "expected_shortfall_95": -19.363520318303724,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.16279069767441862
+    }
+  },
+  {
+    "threshold": 0.7,
+    "accepted_trade_count": 13,
+    "accept_rate_vs_baseline": 0.14942528735632185,
+    "pnl_net": 16.474500765052934,
+    "expected_net_pnl": 16.474500765052934,
+    "total_fees": 62.399999999999984,
+    "total_slippage": 31.199999999999992,
+    "win_rate": 0.6923076923076923,
+    "expected_shortfall_95": -19.363520318303724,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.13953488372093023
+    }
+  },
+  {
+    "threshold": 0.75,
+    "accepted_trade_count": 13,
+    "accept_rate_vs_baseline": 0.14942528735632185,
+    "pnl_net": 16.474500765052934,
+    "expected_net_pnl": 16.474500765052934,
+    "total_fees": 62.399999999999984,
+    "total_slippage": 31.199999999999992,
+    "win_rate": 0.6923076923076923,
+    "expected_shortfall_95": -19.363520318303724,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.13953488372093023
+    }
+  },
+  {
+    "threshold": 0.8,
+    "accepted_trade_count": 12,
+    "accept_rate_vs_baseline": 0.13793103448275862,
+    "pnl_net": 35.83802108335666,
+    "expected_net_pnl": 35.83802108335666,
+    "total_fees": 57.59999999999999,
+    "total_slippage": 28.799999999999994,
+    "win_rate": 0.75,
+    "expected_shortfall_95": -8.188855198300587,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.12790697674418605
+    }
+  },
+  {
+    "threshold": 0.85,
+    "accepted_trade_count": 12,
+    "accept_rate_vs_baseline": 0.13793103448275862,
+    "pnl_net": 35.83802108335666,
+    "expected_net_pnl": 35.83802108335666,
+    "total_fees": 57.59999999999999,
+    "total_slippage": 28.799999999999994,
+    "win_rate": 0.75,
+    "expected_shortfall_95": -8.188855198300587,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.12790697674418605
+    }
+  },
+  {
+    "threshold": 0.9,
+    "accepted_trade_count": 12,
+    "accept_rate_vs_baseline": 0.13793103448275862,
+    "pnl_net": 35.83802108335666,
+    "expected_net_pnl": 35.83802108335666,
+    "total_fees": 57.59999999999999,
+    "total_slippage": 28.799999999999994,
+    "win_rate": 0.75,
+    "expected_shortfall_95": -8.188855198300587,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.12790697674418605
+    }
+  },
+  {
+    "threshold": 0.95,
+    "accepted_trade_count": 12,
+    "accept_rate_vs_baseline": 0.13793103448275862,
+    "pnl_net": 35.83802108335666,
+    "expected_net_pnl": 35.83802108335666,
+    "total_fees": 57.59999999999999,
+    "total_slippage": 28.799999999999994,
+    "win_rate": 0.75,
+    "expected_shortfall_95": -8.188855198300587,
+    "per_regime_accept_rate": {
+      "RANGE": 1.0,
+      "TREND": 0.12790697674418605
+    }
+  }
+]

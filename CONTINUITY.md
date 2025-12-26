@@ -5,6 +5,7 @@
   - Layer A: Regime classifier (30m–4h): TREND / RANGE / HAZARD
   - Layer B: 5m entry strategy (trend follow + range boundary mean reversion)
   - Layer C: 1m “hazard meter” (risk detector) to improve exits / stop fail-fast / prevent add-risk
+- Add live demo streaming + paper-trading (Binance/OKX WS) with trade reason logging
 - Success criteria:
   - Baseline (5m-only) vs Enhanced (5m + 1m hazard policy) backtest comparison shows:
     - Lower max drawdown AND/OR better Sharpe after fees/slippage (primary)
@@ -36,6 +37,7 @@
     - Default y_t = 1 if adverse event (e.g., SL hit or "end event") occurs within next 5 minutes, else 0
     - Alternative "end event" definition (drawdown/structure break) is configurable (UNCONFIRMED final)
   - CUSUM fallback: if entries_5m empty, use CUSUM events on 1m returns + triple-barrier labels to build hazard training events
+  - Regime-specific triple-barrier overrides supported via labeling.triple_barrier.by_regime
 - Feature set (Layer C, 1m):
   - Keep: Kyle lambda (rolling impact regression), OFI / multi-level OFI, replenishment/resilience proxies
   - Optional: VPIN as regime/risk toggle (not core alpha)
@@ -43,6 +45,7 @@
 - Validation:
   - Purged walk-forward + embargo
   - Evaluate trading outcomes (PnL after costs, Sharpe, maxDD), not just AUC/accuracy
+  - Meta-label entry filter uses purged walk-forward and outputs meta_model.pkl + meta_eval.json
 - Interpretability:
   - Policy rules log “why” (hazard threshold, slope, absorption spike, replenishment drop)
 - Data lake layout + schemas:
@@ -68,10 +71,21 @@
   - BYBIT trades CSV.gz ingestion uses strict schema (timestamp/symbol/side/price/size), streaming chunks, and end-exclusive filtering
   - BYBIT trades parser normalizes seconds vs ms timestamps (ts < 1e12 treated as seconds)
   - BYBIT orderbook replays snapshot+delta with monotonic seq/u enforcement, resyncs on gaps, emits snapshots on fixed cadence (default 1000ms)
+  - BYBIT L2 parsing now uses strict streaming + magnitude-based timestamp normalization with fail-closed thresholds; new inspect_bybit_l2 CLI writes bybit_l2_inspect.json
 - BYBIT run_all memory guardrails:
   - Load L2 with minimal required columns for enabled features
   - Scan BYBIT agg_trades partitions for metrics/coverage instead of full in-memory load
   - Build 1m/5m bars per-day from partitioned agg_trades to limit memory, rebuild if bars don't cover requested window
+- Stage 3 research loop:
+  - Meta threshold recommendation: 0.25 from sweep for adequate turnover
+  - Performance diagnosis: baseline gross PnL negative even zero-cost; prioritize signal logic over execution/cost tweaks
+- Stage 4 signal repair:
+  - Best zero-cost gross improvement came from enabling trend_pullback_long filter (EMA fast slope positive + 2-bar confirmation)
+- Stage 5 signal repair:
+  - Added intrabar (1m) structure features and cost-aware meta-veto (net PnL label) with walk-forward scoring
+  - Meta threshold sweep recommends 0.35 (by expected net) for 2025-12-01..2025-12-08
+  - Added per-trade 1m candlestick plots for manual validation
+  - Meta scoring uses OOF where available and falls back to full-model scores for uncovered folds; recorded in meta_score_debug.json
 - Evidence guardrails:
   - data_gap_report.json written for missing datasets; run_all fails closed on gaps
   - min_coverage threshold enforced before run_all proceeds
@@ -113,23 +127,49 @@
   - Added pipeline_health.json reporting with ingest/bars/entries/backtest stats + fail-closed guards; added pipeline health test; ran `pytest -q --basetemp=.pytest_tmp`
   - Added CUSUM fallback trades for hazard training when entries_5m=0, signal_1m output, and updated run_all smoke tests; ran `pytest -q --basetemp=.pytest_tmp`
   - Fixed feature timestamp alignment to UTC; fixed isotonic calibrator list bug; filtered high-missingness hazard features before training; ran `pytest -q --basetemp=.pytest_tmp`
-  - Added BYBIT trade partition scanning + per-day bar building in run_all to avoid memory blowups; rebuild bars when window coverage missing; ran `pytest -q --basetemp=.pytest_tmp`
-  - Ran BYBIT manual acceptance commands:
-    - 1-day (2025-12-01..2025-12-02) succeeded with full_policy output
-    - 7-day (2025-12-01..2025-12-08) succeeded baseline-only due to low book_depth coverage outside 12/01
+- Added BYBIT trade partition scanning + per-day bar building in run_all to avoid memory blowups; rebuild bars when window coverage missing; ran `pytest -q --basetemp=.pytest_tmp`
+- Ran BYBIT manual acceptance commands:
+  - 1-day (2025-12-01..2025-12-02) succeeded with full_policy output
+  - 7-day (2025-12-01..2025-12-08) succeeded baseline-only due to low book_depth coverage outside 12/01
+  - Added strict Bybit L2 discovery/parsing diagnostics + inspector CLI; added fixtures/tests for ts normalization and format sniffing; ran `pytest -q --basetemp=.pytest_tmp`
+  - Rebuilt BYBIT book_depth from manual exports with strict parser; full 7-day run now produces full_policy with hazard enabled and ~86k L2 rows/day; ran inspect/build/run commands
+  - Added Stage 3 research loop:
+    - analyze_run + sweep_costs CLIs with attribution/cost stress outputs
+    - Regime-specific triple-barrier overrides
+    - Meta-label entry filter with walk-forward evaluation
+    - Added tests for analyze_run, sweep_costs, and regime-specific barriers; ran `pytest -q --basetemp=.pytest_tmp`
+  - Added meta override flags to run_all (--meta-enabled/--meta-threshold) and fixed sweep_costs to handle empty trade logs; ran `pytest -q --basetemp=.pytest_tmp`
+  - Ran Stage 3 acceptance commands:
+    - python -m src.cli.analyze_run
+    - python -m src.cli.sweep_costs
+    - python -m src.cli.run_all ... (by_regime defaults)
+    - python -m src.cli.run_all ... --meta-enabled (produced 0 trades)
+  - Added meta score debug artifacts + threshold sweep CLI; ran sweep_meta_thresholds and updated meta_score_debug/recommendation
+  - Completed Stage 3 controlled experiments (baseline/meta 0.25/zero-cost/trend-only) with analyze_run + sweep_costs; wrote artifacts/research_stage3_report.md
+  - Added entry subtype toggles + trend_pullback_long filter + run_all CLI overrides (including horizon override); added tests for subtypes/filter; ran `pytest -q --basetemp=.pytest_tmp`
+  - Ran Stage 4 ablations (E0–E4) with zero-cost + realistic costs; generated `artifacts/stage4_report.md`; ran `pytest -q --basetemp=.pytest_tmp`
+-  Implemented Stage 5 intrabar features + cost-aware meta labels + meta_veto variant; added plot_trades CLI and bybit manual caching; ran `pytest -q --basetemp=.pytest_tmp`
+-  Ran Stage 5 acceptance runs (1d baseline, 7d E4 baseline, 7d meta_veto threshold=0.35) and generated `artifacts/stage5/stage5_report.md`
+-  Added weighted OFI micro-alpha module (`src/alpha/ofi.py`) with tests (`tests/test_alpha_ofi.py`); ran `pytest -q`
+-  Added weighted OBI micro-alpha module (`src/alpha/imbalance.py`) with tests (`tests/test_alpha_imbalance.py`); ran `pytest -q`
+-  Added Kyle lambda micro-alpha module (`src/alpha/kyle_lambda.py`) with tests (`tests/test_alpha_kyle_lambda.py`); ran `pytest -q`
+-  Added VPIN micro-alpha module (`src/alpha/vpin.py`) with tests (`tests/test_alpha_vpin.py`); ran `pytest -q`
+-  Added microstructure feature merge layer (`src/alpha/micro_features.py`) with tests (`tests/test_alpha_micro_features.py`); ran `pytest -q`
+-  Added `src/cli/diagnose_microstructure.py` + tests (`tests/test_diagnose_microstructure.py`); ran `pytest -q` and generated `artifacts/stage7/20251225_031742_micro_diag`
+-  Added live demo paper-trading engine (`src/live/paper_trader.py`) with tests (`tests/test_live_paper_trader.py`); ran `pytest -q`
+-  Added live WS stream adapters (`src/live/stream.py`) and CLI runner (`src/cli/live_demo.py`); ran `pytest -q`
 - Now:
-  - BYBIT manual evidence run complete; hazard disabled on 7-day window because book_depth coverage outside 12/01 is minimal
+  - Stage 5 report completed; meta_veto reduces turnover but net remains negative under realistic costs
+  - Sprint A diagnostics complete; live demo WS runner ready
 - Next:
-  - Implement Phase B Binance local order book (WS sync + snapshots/diffs) and L2 storage pipeline
-  - Add Deepcoin L2 snapshots/diffs support and throttled backfill
-  - Add execution realism + risk kill switches (backtest-only)
-  - Set up GitHub Actions CI
-
+  - Run live demo overnight and review `artifacts/live_demo/...` logs
+  - Decide if entry/exit thresholds need adjustment after first live run
+  - Resume Sprint B micro_alpha design after live demo validation
 ## Open questions (UNCONFIRMED if needed):
 - Data availability:
   - Manual OKX exports covering 2025-12-01..2025-12-15 (UNCONFIRMED)
   - BYBIT trades/candles covering 2025-12-01..2025-12-08 (UNCONFIRMED)
-  - BYBIT book_depth coverage beyond 2025-12-01 is minimal in current exports (UNCONFIRMED if more data exists)
+  - BYBIT book_depth coverage beyond 2025-12-01 is now full after rebuild (confirmed)
   - OKX historical data availability for 2025-09-01 to 2025-09-04 via manifest endpoint (UNCONFIRMED)
   - Do we have reliable L2 snapshots/updates for Binance + Deepcoin for the same symbols?
   - Do we have cancel/add event flags, or only snapshots?
@@ -141,6 +181,12 @@
   - Which symbols/time period will be used for first “MVP proof” run?
 - Execution assumptions:
   - Maker/taker fee schedule, slippage model, latency assumptions for backtest not finalized
+- Meta-labeling:
+  - Root cause for 0-trade meta run: meta score distribution median ~0.154 with p90 ~0.305, so default threshold 0.55 rejects all; NaN ratio 0.0
+  - Recommended meta threshold from sweep: 0.25 (accepted 31 trades, ~0.212 accept rate, pnl_net -220.68)
+  - Stage 3 result: baseline gross PnL negative even zero-cost; confirm desired signal changes (UNCONFIRMED)
+  - Stage 4 result: E4 trend_pullback_long filter yields zero-cost gross > 0; net still negative with default costs (UNCONFIRMED next action)
+  - Stage 5 result: meta_veto threshold 0.35 recommended; baseline gross still negative after costs (UNCONFIRMED next action)
 
 ## Working set (files/ids/commands):
 - Key files:
@@ -169,10 +215,40 @@
   - tests/test_bybit_orderbook_replay_emits_snapshots.py
   - tests/test_pipeline_health_written.py
   - tests/test_cusum_fallback_events_nonzero.py
+  - src/cli/inspect_bybit_l2.py
+  - src/cli/analyze_run.py
+  - src/cli/sweep_costs.py
+  - src/cli/sweep_meta_thresholds.py
+  - src/modeling/train_meta.py
+  - tests/test_analyze_run_smoke.py
+  - tests/test_sweep_costs_smoke.py
+  - tests/test_regime_specific_barriers.py
+  - tests/conftest.py
+  - tests/test_bybit_l2_inspector.py
+  - tests/fixtures/bybit_l2_small/orderbook_seconds.jsonl
+  - tests/fixtures/bybit_l2_small/orderbook_ms.jsonl
+  - artifacts/research_stage3_report.md
+  - artifacts/stage4_report.md
+  - artifacts/stage5/stage5_report.md
+  - artifacts/stage5/baseline_1d
+  - artifacts/stage5/baseline_7d_e4
+  - artifacts/stage5/meta_veto_7d
+  - configs/stage4/*.yaml
+  - configs/stage3_zero_cost.yaml
+  - configs/stage3_trend_only.yaml
 - Commands (planned):
   - pytest -q --basetemp=.pytest_tmp
   - python -m src.cli.run_all --config configs/default.yaml --exchange bybit --symbol BTCUSDT --start 2025-12-01 --end 2025-12-02 --source bybit_manual --bybit-manual-root "E:\bybit_manual_exports" --bybit-store-top-levels 50
   - python -m src.cli.run_all --config configs/default.yaml --exchange bybit --symbol BTCUSDT --start 2025-12-01 --end 2025-12-08 --source bybit_manual --bybit-manual-root "E:\bybit_manual_exports" --bybit-store-top-levels 50
+  - python -m src.cli.inspect_bybit_l2 --root "E:\bybit_manual_exports" --symbol BTCUSDT --date 2025-12-04 --level 200
+  - python -m src.cli.build_dataset --config configs/default.yaml --exchange bybit --symbol BTCUSDT --start 2025-12-01 --end 2025-12-08 --source bybit_manual --datasets book_depth --bybit-manual-root "E:\bybit_manual_exports" --bybit-store-top-levels 50
+  - python -m src.cli.analyze_run
+  - python -m src.cli.sweep_costs
+  - python -m src.cli.run_all --config configs/default.yaml --exchange bybit --symbol BTCUSDT --start 2025-12-01 --end 2025-12-08 --source bybit_manual --bybit-manual-root "E:\bybit_manual_exports" --bybit-store-top-levels 50 --meta-enabled
+  - python -m src.cli.sweep_meta_thresholds --thresholds "0.05,0.10,0.15,...,0.95"
+  - python -m src.cli.run_all --config configs/default.yaml --exchange bybit --symbol BTCUSDT --start 2025-12-01 --end 2025-12-08 --source bybit_manual --bybit-manual-root "E:\bybit_manual_exports" --bybit-store-top-levels 50 --meta-enabled --meta-threshold 0.25
+  - python -m src.cli.analyze_run --artifacts artifacts
+  - python -m src.cli.sweep_costs --artifacts artifacts
   - python -m src.cli.build_dataset --config configs/default.yaml --exchange binance --symbol BTCUSDT --start 2025-01-01 --end 2025-01-31 --mode rest
   - python -m src.cli.build_dataset --config configs/default.yaml --exchange binance --symbol BTCUSDT --start 2025-01-01 --end 2025-01-31 --source vision --datasets klines_1m,agg_trades,book_ticker,book_depth,premium_kline,mark_kline
   - python -m src.cli.build_dataset --config configs/default.yaml --exchange deepcoin --symbol BTCUSDT --start 2025-01-01 --end 2025-01-31 --mode rest

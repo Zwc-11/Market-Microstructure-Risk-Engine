@@ -1,0 +1,54 @@
+{
+  "gross_pnl": 5.0,
+  "fees": 1.0,
+  "slippage": 0.5,
+  "net_pnl": 3.5,
+  "pnl_by_day": {
+    "2025-01-01": 3.5
+  },
+  "pnl_by_regime": {
+    "RANGE": 3.5
+  },
+  "pnl_by_entry_type": {
+    "range_upper_touch": 3.5
+  },
+  "pnl_by_exit_reason": {
+    "barrier_pt": 3.5
+  },
+  "holding_time_min": {
+    "mean": 5.0,
+    "median": 5.0,
+    "p95": 5.0
+  },
+  "turnover_stats": {
+    "notional_sum": 100.0,
+    "turnover": 0.01
+  },
+  "hazard": {
+    "p_hat_summary": {
+      "min": 0.1,
+      "mean": 0.5,
+      "p50": 0.5,
+      "p90": 0.8200000000000001,
+      "p99": 0.892
+    },
+    "trigger_counts": {
+      "normal": 1,
+      "high": 1
+    },
+    "action_counts": {
+      "hold": 1,
+      "exit": 1
+    }
+  },
+  "exits_saved_estimate": {
+    "matched_trades": 0,
+    "hazard_exit_count": 0,
+    "delta_net_pnl_sum": 0.0
+  },
+  "trade_log_used": "trades_enhanced.parquet",
+  "compare_summary_rows": 1,
+  "pipeline_health": {},
+  "hazard_report": {},
+  "assumed_initial_capital": 10000.0
+}

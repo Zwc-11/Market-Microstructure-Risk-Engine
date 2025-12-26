@@ -37,6 +37,7 @@ class SniffResult:
     container: str
     data_format: str
     inner_name: Optional[str]
+    magic_bytes: str
 
 
 def _sha256_file(path: Path) -> str:
@@ -62,20 +63,41 @@ def scan_files(root: Path) -> List[Path]:
     return sorted(files, key=lambda p: str(p).lower())
 
 
-def scan_orderbook_files(root: Path, symbol: str) -> List[Path]:
+def _find_orderbook_dirs(root: Path, symbol: str) -> List[Path]:
     if not root.exists():
         return []
     sym = symbol.lower()
-    files: List[Path] = []
+    dirs: List[Path] = []
     for path in root.rglob("*"):
         if not path.is_dir():
             continue
         name = path.name.lower()
         if sym in name and "ob" in name:
-            for fpath in path.rglob("*"):
-                if fpath.is_file() and not _should_skip(fpath):
-                    files.append(fpath)
-    return sorted(set(files), key=lambda p: str(p).lower())
+            dirs.append(path)
+    return dirs
+
+
+def scan_orderbook_payloads(root: Path, symbol: str) -> List[Dict[str, object]]:
+    payloads: List[Dict[str, object]] = []
+    for folder in _find_orderbook_dirs(root, symbol):
+        candidates = [p for p in folder.rglob("*") if p.is_file() and not _should_skip(p)]
+        if not candidates:
+            continue
+        candidates = sorted(candidates, key=lambda p: str(p).lower())
+        selected = max(candidates, key=lambda p: (p.stat().st_size, str(p).lower()))
+        payloads.append(
+            {
+                "folder": folder,
+                "candidates": candidates,
+                "selected": selected,
+            }
+        )
+    return sorted(payloads, key=lambda item: str(item["folder"]).lower())
+
+
+def scan_orderbook_files(root: Path, symbol: str) -> List[Path]:
+    payloads = scan_orderbook_payloads(root, symbol)
+    return [payload["selected"] for payload in payloads]
 
 
 def _extract_date_from_path(path: Path) -> Optional[str]:
@@ -266,9 +288,19 @@ def iter_bybit_trades_gz_strict(
             debug["files_used"] = used
 
 
+def _looks_binary(head: bytes) -> bool:
+    if not head:
+        return False
+    non_printable = 0
+    for b in head:
+        if b < 9 or (13 < b < 32) or b > 126:
+            non_printable += 1
+    return (non_printable / len(head)) > 0.3
+
+
 def sniff_file(path: Path) -> SniffResult:
     with open(path, "rb") as f:
-        head = f.read(4)
+        head = f.read(8)
 
     container = "raw"
     if head.startswith(b"PK"):
@@ -278,10 +310,17 @@ def sniff_file(path: Path) -> SniffResult:
 
     sample = _read_text_sample(path, container)
     data_format = _detect_text_format(sample)
+    if data_format == "unknown" and _looks_binary(head):
+        data_format = "binary"
     inner_name = None
     if container == "zip":
         inner_name = _select_zip_member(path)
-    return SniffResult(container=container, data_format=data_format, inner_name=inner_name)
+    return SniffResult(
+        container=container,
+        data_format=data_format,
+        inner_name=inner_name,
+        magic_bytes=head.hex(),
+    )
 
 
 def _read_text_sample(path: Path, container: str, max_bytes: int = 4096) -> str:
@@ -320,6 +359,56 @@ def _detect_text_format(sample: str) -> str:
     if "," in sample.splitlines()[0]:
         return "csv"
     return "unknown"
+
+
+def _iter_l2_records(path: Path, sniff: SniffResult, file_debug: Dict) -> Iterator[Dict]:
+    if sniff.data_format in {"unknown", "binary"}:
+        raise ValueError(
+            f"Unsupported format for bybit L2: {sniff.data_format}; magic_bytes={sniff.magic_bytes}"
+        )
+
+    handle, parent = _open_inner(path, sniff)
+    try:
+        if sniff.data_format in {"jsonl", "json"}:
+            wrapper = io.TextIOWrapper(handle, encoding="utf-8", errors="ignore")
+            for raw in wrapper:
+                file_debug["lines_seen"] += 1
+                line = raw.strip()
+                if not line:
+                    continue
+                try:
+                    record = _loads_json(line)
+                except Exception as exc:
+                    file_debug["decode_errors"] += 1
+                    if file_debug.get("first_error") is None:
+                        file_debug["first_error"] = str(exc)
+                        file_debug["first_error_sample"] = line[:200]
+                    continue
+
+                if isinstance(record, dict):
+                    file_debug["parsed_records"] += 1
+                    yield record
+                elif isinstance(record, list):
+                    for item in record:
+                        if isinstance(item, dict):
+                            file_debug["parsed_records"] += 1
+                            yield item
+            return
+
+        if sniff.data_format == "csv":
+            wrapper = io.TextIOWrapper(handle, encoding="utf-8", errors="ignore")
+            reader = csv.DictReader(wrapper)
+            for row in reader:
+                file_debug["lines_seen"] += 1
+                if not row:
+                    continue
+                file_debug["parsed_records"] += 1
+                yield row
+            return
+    finally:
+        handle.close()
+        if parent is not None:
+            parent.close()
 
 
 def _open_inner(path: Path, sniff: SniffResult):
@@ -437,14 +526,62 @@ def _read_dataset_file(path: Path, sniff: SniffResult) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _parse_ts_ms(value) -> Optional[int]:
+def _bump_ts_scale(debug: Optional[Dict], key: str) -> None:
+    if debug is None:
+        return
+    counts = debug.setdefault(
+        "ts_scale_counts",
+        {
+            "seconds": 0,
+            "milliseconds": 0,
+            "microseconds": 0,
+            "nanoseconds": 0,
+            "invalid": 0,
+        },
+    )
+    counts[key] = int(counts.get(key, 0)) + 1
+
+
+def _merge_ts_scale_counts(dest: Optional[Dict], source: Optional[Dict]) -> None:
+    if dest is None or source is None:
+        return
+    src_counts = source.get("ts_scale_counts")
+    if not isinstance(src_counts, dict):
+        return
+    dest_counts = dest.setdefault(
+        "ts_scale_counts",
+        {
+            "seconds": 0,
+            "milliseconds": 0,
+            "microseconds": 0,
+            "nanoseconds": 0,
+            "invalid": 0,
+        },
+    )
+    for key, value in src_counts.items():
+        dest_counts[key] = int(dest_counts.get(key, 0)) + int(value)
+
+
+def _parse_ts_ms(value, debug: Optional[Dict] = None) -> Optional[int]:
     if value is None:
+        _bump_ts_scale(debug, "invalid")
         return None
     try:
         ts = int(float(value))
     except (TypeError, ValueError):
+        _bump_ts_scale(debug, "invalid")
         return None
-    return ts if ts >= 10**12 else ts * 1000
+    if ts < 1e11:
+        _bump_ts_scale(debug, "seconds")
+        return ts * 1000
+    if ts < 1e14:
+        _bump_ts_scale(debug, "milliseconds")
+        return ts
+    if ts < 1e17:
+        _bump_ts_scale(debug, "microseconds")
+        return ts // 1000
+    _bump_ts_scale(debug, "nanoseconds")
+    return ts // 1_000_000
 
 
 def _parse_level_list(raw) -> List[Tuple[float, float]]:
@@ -523,8 +660,12 @@ def _emit_snapshot_row(
 
 def _init_debug(start_ms: int, end_ms: int, start_str: str, end_str: str) -> Dict:
     return {
+        "files_discovered": [],
+        "files_selected": [],
         "files_scanned": [],
+        "parse_errors": [],
         "files_skipped_out_of_range": 0,
+        "files_skipped_cached": 0,
         "rows_seen": 0,
         "rows_emitted": 0,
         "rows_kept": 0,
@@ -535,6 +676,13 @@ def _init_debug(start_ms: int, end_ms: int, start_str: str, end_str: str) -> Dic
         "symbols": Counter(),
         "type_counts": Counter(),
         "u_eq_1_count": 0,
+        "ts_scale_counts": {
+            "seconds": 0,
+            "milliseconds": 0,
+            "microseconds": 0,
+            "nanoseconds": 0,
+            "invalid": 0,
+        },
         "requested_start": start_str,
         "requested_end": end_str,
         "requested_start_ms": start_ms,
@@ -573,6 +721,31 @@ def _finalize_debug(debug: Dict) -> Dict:
 
     debug["symbols"] = {k: int(v) for k, v in debug.get("symbols", {}).items()}
     debug["type_counts"] = {k: int(v) for k, v in debug.get("type_counts", {}).items()}
+    if "ts_scale_counts" in debug:
+        debug["ts_scale_counts"] = {
+            k: int(v) for k, v in debug.get("ts_scale_counts", {}).items()
+        }
+    files = debug.get("files_scanned")
+    if isinstance(files, list):
+        for entry in files:
+            if not isinstance(entry, dict):
+                continue
+            if entry.get("min_ts") is not None:
+                entry["min_ts_utc"] = _to_utc(entry.get("min_ts"))
+            if entry.get("max_ts") is not None:
+                entry["max_ts_utc"] = _to_utc(entry.get("max_ts"))
+            if "type_counts" in entry:
+                entry["type_counts"] = {
+                    k: int(v) for k, v in entry.get("type_counts", {}).items()
+                }
+            if "symbol_counts" in entry:
+                entry["symbol_counts"] = {
+                    k: int(v) for k, v in entry.get("symbol_counts", {}).items()
+                }
+            if "ts_scale_counts" in entry:
+                entry["ts_scale_counts"] = {
+                    k: int(v) for k, v in entry.get("ts_scale_counts", {}).items()
+                }
     return debug
 
 
@@ -623,10 +796,21 @@ def load_bybit_manual_book_depth(
     book_sample_ms: int = 1000,
     start_str: str = "",
     end_str: str = "",
+    skip_dates: Optional[set[str]] = None,
 ) -> Tuple[pd.DataFrame, Dict]:
     store_levels = min(int(store_levels), L2_LEVELS)
-    files = scan_orderbook_files(book_root, symbol)
+    payloads = scan_orderbook_payloads(book_root, symbol)
+    files = [payload["selected"] for payload in payloads]
     debug = _init_debug(start_ms, end_ms, start_str, end_str)
+    debug["files_discovered"] = [
+        {
+            "folder": str(payload["folder"]),
+            "selected": str(Path(payload["selected"]).resolve()),
+            "candidates": [str(Path(p).resolve()) for p in payload["candidates"]],
+        }
+        for payload in payloads
+    ]
+    debug["files_selected"] = [str(Path(path).resolve()) for path in files]
     sample_ms = max(1, int(book_sample_ms))
     sampling_debug = _init_sampling_debug(start_ms, end_ms, start_str, end_str, sample_ms)
     filtered_files: List[Path] = []
@@ -634,6 +818,9 @@ def load_bybit_manual_book_depth(
         date_str = _extract_date_from_path(path)
         if date_str and not _date_in_window(date_str, start_ms, end_ms):
             debug["files_skipped_out_of_range"] += 1
+            continue
+        if skip_dates and date_str in skip_dates:
+            debug["files_skipped_cached"] += 1
             continue
         filtered_files.append(path)
     files = filtered_files
@@ -653,116 +840,192 @@ def load_bybit_manual_book_depth(
 
     for path in files:
         sniff = sniff_file(path)
-        debug["files_scanned"].append(
-            {
-                "dataset": "book_depth",
-                "path": str(path.resolve()),
-                "sha256": _sha256_file(path),
-                "container": sniff.container,
-                "format": sniff.data_format,
-                "inner_name": sniff.inner_name,
-            }
-        )
-        for record in _iter_records(path, sniff):
-            debug["rows_seen"] += 1
-            if not isinstance(record, dict):
-                continue
-            data = record.get("data")
-            if not isinstance(data, dict):
-                continue
-            ts_ms = _parse_ts_ms(record.get("ts") or data.get("ts"))
-            if ts_ms is None:
-                continue
-            sampling_debug["events_seen"] += 1
-            _update_min_max(sampling_debug, "min_ts", "max_ts", ts_ms)
-
-            symbol_raw = data.get("s") or record.get("symbol") or record.get("instrument")
-            if symbol_raw:
-                debug["symbols"][str(symbol_raw)] += 1
-                if str(symbol_raw).upper() != str(symbol).upper():
+        try:
+            size_bytes = path.stat().st_size
+        except OSError:
+            size_bytes = None
+        file_debug = {
+            "dataset": "book_depth",
+            "path": str(path.resolve()),
+            "sha256": _sha256_file(path),
+            "size_bytes": size_bytes,
+            "container": sniff.container,
+            "format": sniff.data_format,
+            "inner_name": sniff.inner_name,
+            "magic_bytes": sniff.magic_bytes,
+            "lines_seen": 0,
+            "parsed_records": 0,
+            "decode_errors": 0,
+            "first_error": None,
+            "first_error_sample": None,
+            "min_ts": None,
+            "max_ts": None,
+            "events_in_window": 0,
+            "type_counts": Counter(),
+            "symbol_counts": Counter(),
+            "ts_scale_counts": {
+                "seconds": 0,
+                "milliseconds": 0,
+                "microseconds": 0,
+                "nanoseconds": 0,
+                "invalid": 0,
+            },
+        }
+        try:
+            for record in _iter_l2_records(path, sniff, file_debug):
+                debug["rows_seen"] += 1
+                if not isinstance(record, dict):
                     continue
-            event_type = record.get("type") or record.get("event_type") or ""
-            event_type = str(event_type).lower()
-            if event_type:
-                debug["type_counts"][event_type] += 1
-
-            update_id = data.get("u")
-            seq = data.get("seq")
-            if update_id == 1 or update_id == "1":
-                debug["u_eq_1_count"] += 1
-
-            bids = _parse_level_list(data.get("b"))
-            asks = _parse_level_list(data.get("a"))
-
-            _update_min_max(debug, "min_ts_seen", "max_ts_seen", ts_ms)
-
-            treat_snapshot = event_type == "snapshot" or update_id == 1 or update_id == "1"
-            if treat_snapshot:
-                sampling_debug["snapshots_seen"] += 1
-                state.apply_snapshot(bids, asks)
-                if not state_valid:
-                    sampling_debug["resync_count"] += 1
-                state_valid = True
-            else:
-                sampling_debug["deltas_seen"] += 1
-                if not state_valid:
+                data = record.get("data")
+                if not isinstance(data, dict):
                     continue
-                seq_val = None
-                for candidate in (seq, update_id):
-                    try:
-                        seq_val = int(candidate)
-                        break
-                    except (TypeError, ValueError):
+                ts_ms = _parse_ts_ms(record.get("ts") or data.get("ts"), debug=file_debug)
+                if ts_ms is None:
+                    continue
+                _update_min_max(file_debug, "min_ts", "max_ts", ts_ms)
+                sampling_debug["events_seen"] += 1
+                _update_min_max(sampling_debug, "min_ts", "max_ts", ts_ms)
+                _update_min_max(debug, "min_ts_seen", "max_ts_seen", ts_ms)
+                if start_ms <= ts_ms < end_ms:
+                    file_debug["events_in_window"] += 1
+
+                symbol_raw = data.get("s") or record.get("symbol") or record.get("instrument")
+                if symbol_raw:
+                    debug["symbols"][str(symbol_raw)] += 1
+                    file_debug["symbol_counts"][str(symbol_raw)] += 1
+                    if str(symbol_raw).upper() != str(symbol).upper():
                         continue
-                if seq_val is not None and last_seq is not None:
-                    if seq_val <= last_seq:
-                        sampling_debug["gap_count"] += 1
-                        state_valid = False
+                event_type = record.get("type") or record.get("event_type") or ""
+                event_type = str(event_type).lower()
+                if event_type:
+                    debug["type_counts"][event_type] += 1
+                    file_debug["type_counts"][event_type] += 1
+
+                update_id = data.get("u")
+                seq = data.get("seq")
+                if update_id == 1 or update_id == "1":
+                    debug["u_eq_1_count"] += 1
+
+                bids = _parse_level_list(data.get("b"))
+                asks = _parse_level_list(data.get("a"))
+
+                treat_snapshot = event_type == "snapshot" or update_id == 1 or update_id == "1"
+                if treat_snapshot:
+                    sampling_debug["snapshots_seen"] += 1
+                    state.apply_snapshot(bids, asks)
+                    if not state_valid:
+                        sampling_debug["resync_count"] += 1
+                    state_valid = True
+                else:
+                    sampling_debug["deltas_seen"] += 1
+                    if not state_valid:
+                        continue
+                    seq_val = None
+                    for candidate in (seq, update_id):
+                        try:
+                            seq_val = int(candidate)
+                            break
+                        except (TypeError, ValueError):
+                            continue
+                    if seq_val is not None and last_seq is not None:
+                        if seq_val <= last_seq:
+                            sampling_debug["gap_count"] += 1
+                            state_valid = False
+                            last_seq = seq_val
+                            continue
+                    if seq_val is not None:
                         last_seq = seq_val
-                        continue
-                if seq_val is not None:
-                    last_seq = seq_val
-                state.apply_delta(bids, asks)
+                    state.apply_delta(bids, asks)
 
-            if treat_snapshot:
-                try:
-                    last_seq = int(seq)
-                except (TypeError, ValueError):
-                    last_seq = last_seq
+                if treat_snapshot:
+                    try:
+                        last_seq = int(seq)
+                    except (TypeError, ValueError):
+                        last_seq = last_seq
 
-            should_emit = False
-            if emit_every_delta:
-                should_emit = True
-            else:
-                bucket = int(ts_ms // sample_ms)
-                if last_emit_bucket is None or bucket != last_emit_bucket:
+                should_emit = False
+                if emit_every_delta:
                     should_emit = True
-                    last_emit_bucket = bucket
-            if not should_emit:
-                continue
+                else:
+                    bucket = int(ts_ms // sample_ms)
+                    if last_emit_bucket is None or bucket != last_emit_bucket:
+                        should_emit = True
+                        last_emit_bucket = bucket
+                if not should_emit:
+                    continue
 
-            row_counter += 1
-            update_id_final = int(ts_ms) * 1_000_000 + row_counter
+                row_counter += 1
+                update_id_final = int(ts_ms) * 1_000_000 + row_counter
 
-            metadata = {
-                "source_depth": int(max(len(bids), len(asks), 0)),
-                "stored_depth": int(store_levels),
-                "seq": seq,
-                "u": update_id,
-                "event_type": event_type or ("snapshot" if treat_snapshot else "delta"),
-            }
-            row = _emit_snapshot_row(
-                ts_ms=ts_ms,
-                symbol=str(symbol),
-                state=state,
-                store_levels=store_levels,
-                update_id=update_id_final,
-                metadata=metadata,
+                metadata = {
+                    "source_depth": int(max(len(bids), len(asks), 0)),
+                    "stored_depth": int(store_levels),
+                    "seq": seq,
+                    "u": update_id,
+                    "event_type": event_type or ("snapshot" if treat_snapshot else "delta"),
+                }
+                row = _emit_snapshot_row(
+                    ts_ms=ts_ms,
+                    symbol=str(symbol),
+                    state=state,
+                    store_levels=store_levels,
+                    update_id=update_id_final,
+                    metadata=metadata,
+                )
+                rows.append(row)
+                debug["rows_emitted"] += 1
+                sampling_debug["snapshots_emitted"] += 1
+                _update_min_max(debug, "min_ts_emitted", "max_ts_emitted", ts_ms)
+        except Exception as exc:
+            file_debug["parse_error"] = str(exc)
+            debug["parse_errors"].append({"path": file_debug["path"], "error": str(exc)})
+            _merge_ts_scale_counts(debug, file_debug)
+            debug["files_scanned"].append(file_debug)
+            _write_debug(debug, diagnostics_dir)
+            _write_sampling_debug(sampling_debug, diagnostics_dir)
+            raise
+
+        if file_debug["lines_seen"]:
+            file_debug["error_rate"] = file_debug["decode_errors"] / file_debug["lines_seen"]
+        else:
+            file_debug["error_rate"] = 0.0
+        _merge_ts_scale_counts(debug, file_debug)
+        debug["files_scanned"].append(file_debug)
+
+        parsed_records = int(file_debug.get("parsed_records", 0))
+        error_rate = float(file_debug.get("error_rate", 0.0))
+        size_bytes = int(file_debug.get("size_bytes") or 0)
+        if size_bytes >= 50 * 1024 * 1024 and parsed_records < 10_000:
+            message = (
+                "Bybit book_depth parse too few events for large file: "
+                f"path={file_debug['path']} size_bytes={size_bytes} parsed_records={parsed_records}."
             )
-            rows.append(row)
-            debug["rows_emitted"] += 1
-            sampling_debug["snapshots_emitted"] += 1
-            _update_min_max(debug, "min_ts_emitted", "max_ts_emitted", ts_ms)
+            file_debug["parse_error"] = message
+            debug["parse_errors"].append({"path": file_debug["path"], "error": message})
+            _write_debug(debug, diagnostics_dir)
+            _write_sampling_debug(sampling_debug, diagnostics_dir)
+            raise ValueError(message)
+        if file_debug["lines_seen"] > 0 and error_rate > 0.001:
+            message = (
+                "Bybit book_depth decode error rate exceeded 0.1%: "
+                f"path={file_debug['path']} error_rate={error_rate:.6f} "
+                f"decode_errors={file_debug['decode_errors']} lines_seen={file_debug['lines_seen']}."
+            )
+            file_debug["parse_error"] = message
+            debug["parse_errors"].append({"path": file_debug["path"], "error": message})
+            _write_debug(debug, diagnostics_dir)
+            _write_sampling_debug(sampling_debug, diagnostics_dir)
+            raise ValueError(message)
+        if size_bytes > 0 and parsed_records == 0:
+            message = (
+                "Bybit book_depth parse produced zero events: "
+                f"path={file_debug['path']} size_bytes={size_bytes}."
+            )
+            file_debug["parse_error"] = message
+            debug["parse_errors"].append({"path": file_debug["path"], "error": message})
+            _write_debug(debug, diagnostics_dir)
+            _write_sampling_debug(sampling_debug, diagnostics_dir)
+            raise ValueError(message)
 
     df = pd.DataFrame(rows)
     rows_kept = 0
@@ -910,6 +1173,7 @@ def load_bybit_manual_datasets(
     end_str: str = "",
     candles_dir: Optional[Path] = None,
     trades_dir: Optional[Path] = None,
+    skip_book_dates: Optional[set[str]] = None,
 ) -> Tuple[Dict[str, pd.DataFrame], Dict]:
     store_levels = min(int(store_levels), L2_LEVELS)
     datasets: Dict[str, pd.DataFrame] = {}
@@ -996,6 +1260,7 @@ def load_bybit_manual_datasets(
             book_sample_ms=book_sample_ms,
             start_str=start_str,
             end_str=end_str,
+            skip_dates=skip_book_dates,
         )
         datasets["book_depth"] = book_df
         run_manifest["files"].extend(debug.get("files_scanned", []))

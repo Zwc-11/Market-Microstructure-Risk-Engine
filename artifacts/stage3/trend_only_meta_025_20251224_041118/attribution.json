@@ -1,0 +1,157 @@
+{
+  "gross_pnl": -28.55545032258926,
+  "fees": 115.19999999999999,
+  "slippage": 57.599999999999994,
+  "net_pnl": -201.35545032258926,
+  "pnl_by_day": {
+    "2025-12-05": -8.86329872991073,
+    "2025-12-06": -103.51319024926838,
+    "2025-12-07": -88.97896134341015
+  },
+  "pnl_by_regime": {
+    "TREND": -201.35545032258926
+  },
+  "pnl_by_entry_type": {
+    "trend_pullback_long": -167.89025659053192,
+    "trend_pullback_short": -33.46519373205733
+  },
+  "pnl_by_exit_reason": {
+    "barrier_sl": -29.033458977548445,
+    "barrier_timeout": -18.648827212067534,
+    "hazard_exit": -23.989455452930756,
+    "hazard_fail_fast": -129.6837086800425
+  },
+  "holding_time_min": {
+    "mean": 3.6666666666666665,
+    "median": 2.0,
+    "p95": 10.0
+  },
+  "turnover_stats": {
+    "notional_sum": 144000.0,
+    "turnover": 14.4
+  },
+  "hazard": {
+    "p_hat_summary": {
+      "min": 0.0,
+      "mean": 0.6113903348453068,
+      "p50": 0.6567908199998271,
+      "p90": 0.8756977322745586,
+      "p99": 1.0
+    },
+    "trigger_counts": {
+      "normal": 8572,
+      "high": 1508
+    },
+    "action_counts": {
+      "no_add": 8283,
+      "exit": 1314,
+      "hold": 289,
+      "reduce": 194
+    }
+  },
+  "exits_saved_estimate": {
+    "matched_trades": 24,
+    "hazard_exit_count": 18,
+    "delta_net_pnl_sum": -5.096120592794385,
+    "delta_net_pnl_mean": -0.2123383580330994
+  },
+  "trade_log_used": "trades_enhanced.parquet",
+  "compare_summary_rows": 1,
+  "pipeline_health": {
+    "config_hash": "aef5faf2f5d23022c60fa8222846cb81ca9bbb6b0345f644022431cf8644f017",
+    "agg_trades": {
+      "rows_total": 17333296,
+      "rows_per_day": {
+        "2025-12-01": 3669773,
+        "2025-12-02": 3272040,
+        "2025-12-03": 3096455,
+        "2025-12-04": 2234635,
+        "2025-12-05": 2339005,
+        "2025-12-06": 877989,
+        "2025-12-07": 1843399
+      },
+      "min_ts_utc": "2025-12-01T00:00:00.010000+00:00",
+      "max_ts_utc": "2025-12-07T23:59:58.379000+00:00"
+    },
+    "book_depth": {
+      "rows_total": 604812,
+      "rows_per_day": {
+        "2025-12-01": 86400,
+        "2025-12-02": 86402,
+        "2025-12-03": 86402,
+        "2025-12-04": 86402,
+        "2025-12-05": 86402,
+        "2025-12-06": 86402,
+        "2025-12-07": 86402
+      },
+      "min_ts_utc": "2025-12-01T00:00:01.121000+00:00",
+      "max_ts_utc": "2025-12-07T23:59:59.015000+00:00",
+      "sampling_rate_sec": 1.0
+    },
+    "bars_1m": {
+      "count": 10080,
+      "missing_minutes_ratio": 0.0
+    },
+    "bars_5m": {
+      "count": 2016
+    },
+    "meta": {
+      "enabled": true,
+      "events_before": 145,
+      "events_after": 30,
+      "threshold": 0.25,
+      "used_features": [
+        "regime_trend",
+        "regime_range",
+        "ret_1",
+        "ret_3",
+        "rv_5",
+        "rv_10",
+        "ofi_L1",
+        "ofi_L5",
+        "ofi_L10",
+        "lambda",
+        "replenish_L10",
+        "repl_ratio_L10",
+        "spread_mean",
+        "microprice"
+      ],
+      "oof_coverage": 0.30344827586206896
+    },
+    "regime": {
+      "TREND": 1766,
+      "HAZARD": 237,
+      "RANGE": 13
+    },
+    "entries_5m": {
+      "events_count": 30
+    },
+    "event_source": "baseline_entries",
+    "baseline": {
+      "trades_count": 30
+    },
+    "hazard": {
+      "enabled": true,
+      "reason_if_disabled": null
+    }
+  },
+  "hazard_report": {
+    "dropped_y": 30,
+    "folds": [],
+    "overall": {},
+    "features": [
+      "ofi_L1",
+      "ofi_L5",
+      "ofi_L10",
+      "lambda",
+      "r2",
+      "resid_std",
+      "depletion_L10",
+      "replenish_L10",
+      "repl_ratio_L10",
+      "spread_mean",
+      "microprice"
+    ]
+  },
+  "assumed_initial_capital": 10000.0
+}

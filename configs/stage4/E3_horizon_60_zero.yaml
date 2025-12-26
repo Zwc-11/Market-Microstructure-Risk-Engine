@@ -1,0 +1,277 @@
+project:
+  name: 100k_strategy
+  timezone: UTC
+paths:
+  raw_dir: data/raw
+  processed_dir: data/processed
+  artifacts_dir: artifacts\stage4\E3_horizon_60_zero
+  logs_dir: logs
+data:
+  exchanges:
+  - name: binance
+    market: perp
+    symbols:
+    - BTCUSDT
+    depth_levels: 10
+    use_l2: true
+  - name: deepcoin
+    market: perp
+    symbols: []
+    depth_levels: 10
+    use_l2: true
+  - name: okx
+    market: swap
+    symbols:
+    - BTC-USDT-SWAP
+    depth_levels: 10
+    use_l2: true
+  - name: bybit
+    market: perp
+    symbols:
+    - BTCUSDT
+    depth_levels: 50
+    use_l2: true
+  time_range:
+    start_date: '2025-01-01'
+    end_date: '2025-01-31'
+  quality:
+    require_monotonic_timestamps: true
+    drop_duplicate_timestamps_keep: last
+    max_gap_seconds: 120
+    min_coverage: 0.95
+  okx:
+    history_endpoint: https://www.okx.com/api/v5/public/market-data-history
+    cache_dir: data/okx
+    depth_levels: 10
+    orderbook_level: 50
+    date_aggr_type: daily
+    manual:
+      candles_dir: E:\okx_manual_exports\BTC-USDT-SWAP-candlesticks-2025-12-15
+      trades_dir: E:\okx_manual_exports\BTC-USDT-SWAP-trades-2025-12-15
+      book_dir: E:\okx_manual_exports\BTC-USDT-SWAP-L2orderbook-400lv-2025-12-15
+      store_top_levels: 50
+      allow_baseline_only: false
+  bybit:
+    manual:
+      root: E:\bybit_manual_exports
+      store_top_levels: 50
+      book_sample_ms: 1000
+      emit_every_delta: false
+      allow_baseline_only: false
+data_health:
+  min_coverage: 0.95
+costs:
+  taker_fee_bps: 0.0
+  maker_fee_bps: 0.0
+  slippage_bps: 0.0
+bars:
+  base_tf: 1m
+  entry_tf: 5m
+  price_source:
+    use_mid_ohlc: true
+    use_trade_ohlc: false
+  l2:
+    levels: 10
+    snapshot_mode: true
+  derived:
+    compute_vwap: true
+    compute_spread: true
+    compute_microprice: true
+regime:
+  tf: 5m
+  windows:
+    rv_window_bars: 12
+    ema_fast_bars: 12
+    ema_slow_bars: 48
+  thresholds:
+    hazard_rv_percentile: 0.9
+    trend_strength_threshold: 1.5
+  outputs:
+    labels:
+    - TREND
+    - RANGE
+    - HAZARD
+strategy:
+  entries_5m:
+    subtypes:
+      trend_pullback_long: true
+      trend_pullback_short: true
+      range_vwap_band: true
+    range:
+      enabled: true
+      center:
+        kind: rolling_vwap
+        window_5m_bars: 12
+      band:
+        kind: rolling_std_mid
+        window_5m_bars: 12
+        k: 1.5
+      cooldown_5m_bars: 1
+    trend:
+      enabled: true
+      ema_fast_bars: 12
+      ema_slow_bars: 48
+      pullback:
+        kind: atr
+        atr_window_5m_bars: 14
+        tolerance_atr: 0.3
+        long_filter:
+          enabled: false
+          require_ema_fast_slope_positive: true
+          confirm_bars: 2
+labeling:
+  use_cusum: true
+  cusum:
+    tf: 1m
+    vol_window_1m_bars: 60
+    threshold_k: 3.0
+    gate_entries: false
+  triple_barrier:
+    horizon_minutes: 10
+    vol:
+      kind: ewma
+      window_1m_bars: 60
+      min_sigma: 1.0e-06
+    barriers:
+      pt_mult: 1.0
+      sl_mult: 1.0
+    price_source: mid_close
+    tie_break:
+      mode: worst_case
+    by_regime:
+      TREND:
+        horizon: 12
+        pt_mult: 1.2
+        sl_mult: 1.0
+      RANGE:
+        horizon: 8
+        pt_mult: 0.8
+        sl_mult: 1.2
+hazard:
+  horizon_minutes: 5
+  feature_window_minutes: 3
+  label_mode: adverse_barrier
+  adverse_barrier:
+    which: SL
+  end_event:
+    enabled: false
+    kind: drawdown_or_structure
+    drawdown:
+      atr_window_1m_bars: 14
+      k_atr: 1.0
+    structure:
+      swing_lookback_1m_bars: 5
+features:
+  ofi:
+    enabled: true
+    levels:
+    - 1
+    - 5
+    - 10
+    normalize_by_depth: true
+  kyle_lambda:
+    enabled: true
+    window_minutes: 3
+    signed_flow_source: ofi
+    separate_up_down: true
+    outputs:
+    - lambda
+    - r2
+    - resid_std
+    - lambda_up
+    - lambda_down
+  replenishment:
+    enabled: true
+    levels: 10
+    eps: 1.0e-09
+    outputs:
+    - depth_l
+    - depletion
+    - replenish
+    - repl_ratio
+    - spread_mean
+    - microprice
+  vpin:
+    enabled: false
+    bucket_volume: 10000
+    outputs:
+    - vpin
+model:
+  type: logistic_regression
+  random_state: 42
+  preprocessing:
+    standardize: true
+    clip_zscore: 10.0
+  training:
+    target: hazard
+    class_weight: balanced
+    calibration:
+      enabled: true
+      method: isotonic
+    validation:
+      method: purged_walk_forward
+      embargo_minutes: 10
+      splits:
+        train_days: 20
+        test_days: 5
+        step_days: 5
+  meta:
+    enabled: false
+    threshold: 0.55
+    include_microstructure: true
+    max_micro_features: 20
+    preprocessing:
+      standardize: true
+      clip_zscore: 10.0
+    training:
+      class_weight: balanced
+      calibration:
+        enabled: true
+        method: isotonic
+      validation:
+        method: purged_walk_forward
+        embargo_minutes: 10
+        splits:
+          train_days: 20
+          test_days: 5
+          step_days: 5
+policy:
+  exit:
+    enabled: true
+    hazard_threshold: 0.7
+    consecutive_minutes: 2
+    require_rising: true
+  fail_fast:
+    enabled: true
+    hazard_threshold: 0.85
+    confirm_signals:
+      require_absorption_spike: false
+      require_replenishment_drop: false
+  add_risk:
+    enabled: true
+    hazard_max_to_add: 0.2
+backtest:
+  initial_capital: 10000
+  leverage: 3
+  fees_bps:
+    maker: 0.0
+    taker: 0.0
+  slippage_bps: 0.0
+  latency_ms: 0
+  sizing:
+    max_risk_per_trade: 0.01
+    max_position_notional_pct: 0.2
+  reporting:
+    metrics:
+    - pnl
+    - sharpe
+    - max_drawdown
+    - win_rate
+    - avg_win
+    - avg_loss
+    - trade_count
+    save_trades: true
+logging:
+  level: INFO
+  log_to_file: true
+seed: 42

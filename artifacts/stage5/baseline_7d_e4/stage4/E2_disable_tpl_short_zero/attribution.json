@@ -1,0 +1,132 @@
+{
+  "gross_pnl": -34.01049319746038,
+  "fees": 0.0,
+  "slippage": 0.0,
+  "net_pnl": -34.01049319746038,
+  "pnl_by_day": {
+    "2025-12-06": -24.91849758472435,
+    "2025-12-07": -9.091995612736032
+  },
+  "pnl_by_regime": {
+    "TREND": -34.01049319746038
+  },
+  "pnl_by_entry_type": {
+    "trend_pullback_long": -34.01049319746038
+  },
+  "pnl_by_exit_reason": {
+    "barrier_pt": 7.576289581679866,
+    "barrier_sl": -56.896319041817065,
+    "barrier_timeout": 16.65519193668683,
+    "hazard_fail_fast": -1.345655674010007
+  },
+  "holding_time_min": {
+    "mean": 7.303030303030303,
+    "median": 10.0,
+    "p95": 10.0
+  },
+  "turnover_stats": {
+    "notional_sum": 198000.0,
+    "turnover": 19.8
+  },
+  "hazard": {
+    "p_hat_summary": {
+      "min": 0.0,
+      "mean": 0.6123396828912069,
+      "p50": 0.6666666666666666,
+      "p90": 0.742929044750204,
+      "p99": 1.0
+    },
+    "trigger_counts": {
+      "normal": 6073,
+      "high": 4007
+    },
+    "action_counts": {
+      "no_add": 6040,
+      "reduce": 3737,
+      "exit": 270,
+      "hold": 33
+    }
+  },
+  "exits_saved_estimate": {
+    "matched_trades": 33,
+    "hazard_exit_count": 9,
+    "delta_net_pnl_sum": -1.7774207721396102,
+    "delta_net_pnl_mean": -0.05386123551938213
+  },
+  "trade_log_used": "trades_enhanced.parquet",
+  "compare_summary_rows": 1,
+  "pipeline_health": {
+    "config_hash": "fe028315fd6be92e6fd801a92b44defcf1424b4d986f1557a0f77f3045bc257a",
+    "agg_trades": {
+      "rows_total": 17333296,
+      "rows_per_day": {
+        "2025-12-01": 3669773,
+        "2025-12-02": 3272040,
+        "2025-12-03": 3096455,
+        "2025-12-04": 2234635,
+        "2025-12-05": 2339005,
+        "2025-12-06": 877989,
+        "2025-12-07": 1843399
+      },
+      "min_ts_utc": "2025-12-01T00:00:00.010000+00:00",
+      "max_ts_utc": "2025-12-07T23:59:58.379000+00:00"
+    },
+    "book_depth": {
+      "rows_total": 604812,
+      "rows_per_day": {
+        "2025-12-01": 86400,
+        "2025-12-02": 86402,
+        "2025-12-03": 86402,
+        "2025-12-04": 86402,
+        "2025-12-05": 86402,
+        "2025-12-06": 86402,
+        "2025-12-07": 86402
+      },
+      "min_ts_utc": "2025-12-01T00:00:01.121000+00:00",
+      "max_ts_utc": "2025-12-07T23:59:59.015000+00:00",
+      "sampling_rate_sec": 1.0
+    },
+    "bars_1m": {
+      "count": 10080,
+      "missing_minutes_ratio": 0.0
+    },
+    "bars_5m": {
+      "count": 2016
+    },
+    "regime": {
+      "TREND": 1766,
+      "HAZARD": 237,
+      "RANGE": 13
+    },
+    "entries_5m": {
+      "events_count": 73
+    },
+    "event_source": "baseline_entries",
+    "baseline": {
+      "trades_count": 73
+    },
+    "hazard": {
+      "enabled": true,
+      "reason_if_disabled": null
+    }
+  },
+  "hazard_report": {
+    "dropped_y": 73,
+    "folds": [],
+    "overall": {},
+    "features": [
+      "ofi_L1",
+      "ofi_L5",
+      "ofi_L10",
+      "lambda",
+      "r2",
+      "resid_std",
+      "depletion_L10",
+      "replenish_L10",
+      "repl_ratio_L10",
+      "spread_mean",
+      "microprice"
+    ]
+  },
+  "assumed_initial_capital": 10000.0
+}

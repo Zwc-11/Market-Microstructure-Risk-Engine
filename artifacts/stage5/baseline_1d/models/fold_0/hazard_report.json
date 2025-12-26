@@ -1,0 +1,18 @@
+{
+  "dropped_y": 12,
+  "folds": [],
+  "overall": {},
+  "features": [
+    "ofi_L1",
+    "ofi_L5",
+    "ofi_L10",
+    "lambda",
+    "r2",
+    "resid_std",
+    "depletion_L10",
+    "replenish_L10",
+    "repl_ratio_L10",
+    "spread_mean",
+    "microprice"
+  ]
+}

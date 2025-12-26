@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -16,6 +17,7 @@ from src.data.bybit_manual import (
     detect_bybit_trades_gz,
     iter_bybit_trades_gz_strict,
     load_bybit_manual_datasets,
+    scan_orderbook_payloads,
 )
 from src.data.schemas import SCHEMAS, enforce_schema
 from src.data.storage import write_partitioned_parquet
@@ -53,6 +55,101 @@ def _require_pyarrow() -> None:
         ) from exc
 
 
+def _partition_manifest_path(part_dir: Path) -> Path:
+    return part_dir / "manifest.json"
+
+
+def _source_fingerprint(paths: List[Path]) -> List[Dict[str, object]]:
+    entries = []
+    for path in sorted(paths, key=lambda p: str(p).lower()):
+        try:
+            stat = path.stat()
+        except OSError:
+            stat = None
+        entries.append(
+            {
+                "path": str(path.resolve()),
+                "size_bytes": int(stat.st_size) if stat else None,
+                "mtime": int(stat.st_mtime) if stat else None,
+            }
+        )
+    return entries
+
+
+def _partition_stats(part_dir: Path, time_col: str = "ts") -> Dict[str, object]:
+    files = sorted(part_dir.glob("part-*.parquet"))
+    if not files:
+        return {"rows": 0, "min_ts": None, "max_ts": None}
+    rows = 0
+    min_ts = None
+    max_ts = None
+    for path in files:
+        df = pd.read_parquet(path, columns=[time_col])
+        if df.empty:
+            continue
+        rows += len(df)
+        ts_min = int(df[time_col].min())
+        ts_max = int(df[time_col].max())
+        min_ts = ts_min if min_ts is None else min(min_ts, ts_min)
+        max_ts = ts_max if max_ts is None else max(max_ts, ts_max)
+    return {"rows": int(rows), "min_ts": min_ts, "max_ts": max_ts}
+
+
+def _load_partition_manifest(path: Path) -> Optional[Dict]:
+    if not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _write_partition_manifest(
+    part_dir: Path, dataset: str, source_files: List[Path], stats: Dict[str, object]
+) -> None:
+    manifest = {
+        "dataset": dataset,
+        "source_files": _source_fingerprint(source_files),
+        "rows": stats.get("rows"),
+        "min_ts": stats.get("min_ts"),
+        "max_ts": stats.get("max_ts"),
+        "created_at": pd.Timestamp.utcnow().isoformat(),
+    }
+    path = _partition_manifest_path(part_dir)
+    path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+
+def _manifest_matches(manifest: Dict, source_files: List[Path]) -> bool:
+    if not manifest:
+        return False
+    expected = manifest.get("source_files", [])
+    current = _source_fingerprint(source_files)
+    return expected == current
+
+
+def _partition_ready(
+    part_dir: Path,
+    dataset: str,
+    source_files: List[Path],
+    force_rebuild: bool,
+    time_col: str = "ts",
+) -> bool:
+    if force_rebuild:
+        if part_dir.exists():
+            shutil.rmtree(part_dir, ignore_errors=True)
+        return False
+    manifest = _load_partition_manifest(_partition_manifest_path(part_dir))
+    if _manifest_matches(manifest or {}, source_files):
+        return True
+    if part_dir.exists() and list(part_dir.glob("part-*.parquet")):
+        if manifest is None:
+            stats = _partition_stats(part_dir, time_col=time_col)
+            _write_partition_manifest(part_dir, dataset, source_files, stats)
+            return True
+        raise ValueError(
+            f"Cached partition mismatch for {dataset} at {part_dir}. "
+            "Use --force-rebuild to refresh."
+        )
+    return False
+
+
 def _build_bars_from_klines(klines: pd.DataFrame) -> pd.DataFrame:
     bars = klines.copy()
     bars["timestamp"] = pd.to_datetime(bars["ts"], unit="ms", utc=True)
@@ -74,6 +171,7 @@ def _parse_datasets_arg(datasets: str | None) -> list[str]:
 def _init_bybit_trades_debug(start_ms: int, end_ms: int, start_str: str, end_str: str) -> Dict:
     return {
         "files_found": [],
+        "files_skipped_cached": [],
         "files_used": [],
         "rows_seen_total": 0,
         "rows_kept_total": 0,
@@ -177,6 +275,16 @@ def _get_depth_levels(cfg: dict, exchange: str, symbol: str) -> int:
     return 10
 
 
+def _extract_date_from_path(path: Path) -> Optional[str]:
+    import re
+
+    for part in (path.name, path.parent.name):
+        match = re.search(r"\d{4}-\d{2}-\d{2}", part)
+        if match:
+            return match.group(0)
+    return None
+
+
 def _minute_coverage(df: pd.DataFrame, start_ms: int, end_ms: int) -> float:
     if df.empty or "ts" not in df.columns:
         return 0.0
@@ -214,6 +322,7 @@ def build_dataset(
     bybit_store_top_levels: int | None = None,
     bybit_book_sample_ms: int | None = None,
     end_inclusive_date: bool = False,
+    force_rebuild: bool = False,
 ) -> None:
     raw_dir = Path(cfg["paths"]["raw_dir"])
     processed_dir = Path(cfg["paths"]["processed_dir"])
@@ -433,6 +542,19 @@ def build_dataset(
         diagnostics_dir = Path(cfg["paths"].get("artifacts_dir", "artifacts")) / "diagnostics"
 
         if "book_depth" in dataset_list:
+            skip_book_dates: set[str] = set()
+            payloads = scan_orderbook_payloads(book_root, symbol)
+            for payload in payloads:
+                path = Path(payload["selected"])
+                date_str = _extract_date_from_path(path)
+                if not date_str:
+                    continue
+                part_dir = (
+                    raw_dir / exchange / market / symbol / "book_depth" / f"date={date_str}"
+                )
+                if _partition_ready(part_dir, "book_depth", [path], force_rebuild, time_col="ts"):
+                    skip_book_dates.add(date_str)
+
             datasets_map, book_manifest = load_bybit_manual_datasets(
                 book_root=book_root,
                 symbol=symbol,
@@ -446,6 +568,7 @@ def build_dataset(
                 end_str=end,
                 candles_dir=None,
                 trades_dir=None,
+                skip_book_dates=skip_book_dates,
             )
             if book_manifest:
                 run_manifest = book_manifest
@@ -460,6 +583,28 @@ def build_dataset(
                     symbol,
                     "book_depth",
                 )
+                for date_str in book_df["ts"].pipe(pd.to_datetime, unit="ms", utc=True).dt.strftime("%Y-%m-%d").unique():
+                    part_dir = (
+                        raw_dir
+                        / exchange
+                        / market
+                        / symbol
+                        / "book_depth"
+                        / f"date={date_str}"
+                    )
+                    if part_dir.exists():
+                        stats = _partition_stats(part_dir, time_col="ts")
+                        source_files = [
+                            Path(payload["selected"])
+                            for payload in payloads
+                            if _extract_date_from_path(Path(payload["selected"])) == date_str
+                        ]
+                        if source_files:
+                            _write_partition_manifest(part_dir, "book_depth", source_files, stats)
+            if skip_book_dates:
+                run_manifest.setdefault("cached", {}).setdefault("book_depth", []).extend(
+                    sorted(skip_book_dates)
+                )
 
         if "agg_trades" in dataset_list:
             _require_pyarrow()
@@ -468,6 +613,22 @@ def build_dataset(
             debug["files_found"] = [
                 {"date": date_str, "path": str(path.resolve())} for date_str, path in files
             ]
+            files_to_process: List[tuple[str, Path]] = []
+            for date_str, path in files:
+                part_dir = (
+                    processed_dir
+                    / "agg_trades"
+                    / f"exchange={exchange}"
+                    / f"symbol={symbol}"
+                    / f"date={date_str}"
+                )
+                if _partition_ready(part_dir, "agg_trades", [path], force_rebuild, time_col="ts"):
+                    debug.setdefault("files_skipped_cached", []).append(
+                        {"date": date_str, "path": str(path.resolve())}
+                    )
+                    run_manifest.setdefault("cached", {}).setdefault("agg_trades", []).append(date_str)
+                    continue
+                files_to_process.append((date_str, path))
 
             partitions: List[Dict] = []
             part_counters: Dict[str, int] = {}
@@ -479,7 +640,7 @@ def build_dataset(
                 end_ms=end_ms,
                 chunksize=2_000_000,
                 debug=debug,
-                files=files,
+                files=files_to_process,
             ):
                 agg_trades = _bybit_trades_to_agg_trades(chunk, symbol)
                 rows_written += _write_bybit_trades_partitions(
@@ -507,9 +668,24 @@ def build_dataset(
             run_manifest.setdefault("files", []).extend(
                 [
                     {"dataset": "agg_trades", "path": str(path.resolve())}
-                    for _, path in files
+                    for _, path in files_to_process
                 ]
             )
+            for date_str in {item["date"] for item in partitions}:
+                part_dir = (
+                    processed_dir
+                    / "agg_trades"
+                    / f"exchange={exchange}"
+                    / f"symbol={symbol}"
+                    / f"date={date_str}"
+                )
+                if part_dir.exists():
+                    stats = _partition_stats(part_dir, time_col="ts")
+                    source_files = [
+                        path for d, path in files_to_process if d == date_str
+                    ]
+                    if source_files:
+                        _write_partition_manifest(part_dir, "agg_trades", source_files, stats)
 
         if run_manifest is not None:
             manifest_path = Path(cfg["paths"].get("artifacts_dir", "artifacts")) / "run_manifest.json"
@@ -619,6 +795,11 @@ def main() -> None:
         action="store_true",
         help="Treat end date as inclusive (internally adds 1 day to end).",
     )
+    parser.add_argument(
+        "--force-rebuild",
+        action="store_true",
+        help="Rebuild datasets even if cached partitions exist.",
+    )
     parser.add_argument("--build-bars", action="store_true", help="Build 1m/5m bars after download.")
     args = parser.parse_args()
 
@@ -651,6 +832,7 @@ def main() -> None:
         bybit_store_top_levels=args.bybit_store_top_levels,
         bybit_book_sample_ms=args.bybit_book_sample_ms,
         end_inclusive_date=args.end_inclusive_date,
+        force_rebuild=args.force_rebuild,
     )
 
 

@@ -94,6 +94,42 @@ def _compute_atr(
     return tr.rolling(window=window, min_periods=window).mean()
 
 
+def _subtype_enabled(reason: str, subtypes_cfg: Dict) -> bool:
+    if not subtypes_cfg:
+        return True
+    if reason in subtypes_cfg:
+        return bool(subtypes_cfg.get(reason))
+    if reason in ("range_upper_touch", "range_lower_touch"):
+        if "range_vwap_band" in subtypes_cfg:
+            return bool(subtypes_cfg.get("range_vwap_band"))
+    return True
+
+
+def _long_pullback_filter_ok(
+    idx: int,
+    price: pd.Series,
+    ema_fast: pd.Series,
+    filter_cfg: Dict,
+) -> bool:
+    if not filter_cfg or not filter_cfg.get("enabled", False):
+        return True
+    confirm_bars = int(filter_cfg.get("confirm_bars", 2))
+    if confirm_bars < 1:
+        confirm_bars = 1
+    if idx < confirm_bars:
+        return False
+    require_slope = bool(filter_cfg.get("require_ema_fast_slope_positive", True))
+    if require_slope:
+        if idx == 0:
+            return False
+        if float(ema_fast.iloc[idx]) <= float(ema_fast.iloc[idx - 1]):
+            return False
+    for offset in range(confirm_bars):
+        if float(price.iloc[idx - offset]) <= float(price.iloc[idx - offset - 1]):
+            return False
+    return True
+
+
 def _event_id(symbol: Optional[str], entry_ts: pd.Timestamp, side: int, reason: str) -> str:
     symbol_val = "" if symbol is None else str(symbol)
     payload = f"{symbol_val}|{entry_ts.isoformat()}|{side}|{reason}"
@@ -130,6 +166,7 @@ def generate_entries_5m(
 
     range_cfg = entries_cfg.get("range", {})
     trend_cfg = entries_cfg.get("trend", {})
+    subtypes_cfg = entries_cfg.get("subtypes", {})
 
     range_enabled = bool(range_cfg.get("enabled", True))
     trend_enabled = bool(trend_cfg.get("enabled", True))
@@ -179,6 +216,7 @@ def generate_entries_5m(
         pullback_cfg = trend_cfg.get("pullback", {})
         atr_window = int(pullback_cfg.get("atr_window_5m_bars", 14))
         tolerance_atr = float(pullback_cfg.get("tolerance_atr", 0.3))
+        long_filter_cfg = pullback_cfg.get("long_filter", {})
 
         ema_fast = price.ewm(span=ema_fast_bars, adjust=False).mean()
         ema_slow = price.ewm(span=ema_slow_bars, adjust=False).mean()
@@ -220,6 +258,8 @@ def generate_entries_5m(
                 reason = "range_lower_touch"
 
             if reason is None:
+                continue
+            if not _subtype_enabled(reason, subtypes_cfg):
                 continue
 
             event = {
@@ -265,14 +305,17 @@ def generate_entries_5m(
 
             if entry_price > float(ema_slow.iloc[idx]):
                 if near_fast and entry_price > prev_price:
-                    side = 1
-                    reason = "trend_pullback_long"
+                    if _long_pullback_filter_ok(idx, price, ema_fast, long_filter_cfg):
+                        side = 1
+                        reason = "trend_pullback_long"
             elif entry_price < float(ema_slow.iloc[idx]):
                 if near_fast and entry_price < prev_price:
                     side = -1
                     reason = "trend_pullback_short"
 
             if reason is None:
+                continue
+            if not _subtype_enabled(reason, subtypes_cfg):
                 continue
 
             event = {

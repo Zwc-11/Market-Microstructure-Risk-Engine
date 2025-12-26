@@ -14,8 +14,8 @@
       "path": "binance\\usdm\\BTCUSDT\\agg_trades\\date=2025-01-01\\part-000.parquet",
       "sha256": "2b8a717ee5b817ab4242926f0e19a08c21ce54617fb3e891328b35ff94e69de7",
       "size_bytes": 3839,
-      "mtime": 1766539190
+      "mtime": 1766607397
     }
   ],
-  "created_at": "2025-12-24T01:19:50.487623+00:00"
+  "created_at": "2025-12-24T20:16:37.976084+00:00"
 }

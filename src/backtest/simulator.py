@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from src.backtest.metrics import compute_summary
-from src.labeling.triple_barrier import triple_barrier_labels
+from src.labeling.triple_barrier import triple_barrier_labels_by_regime
 from src.strategy.policy_1m import evaluate_hazard_policy
 
 
@@ -123,11 +123,6 @@ def run_backtest(
     events["t0"] = pd.to_datetime(events["entry_ts"])
     events = events.sort_values("t0").reset_index(drop=True)
 
-    tb_cfg = config["labeling"]["triple_barrier"]
-    horizon_minutes = int(tb_cfg["horizon_minutes"])
-    vol_cfg = tb_cfg["vol"]
-    barrier_cfg = tb_cfg["barriers"]
-
     bars_tb = _prepare_tb_bars(bars, price_col)
 
     latency_ms = int(config["backtest"].get("latency_ms", 0))
@@ -140,17 +135,12 @@ def run_backtest(
         events.at[idx, "entry_price"] = delayed_price
         latency_bars = max(latency_bars, delayed_bars)
 
-    labels = triple_barrier_labels(
+    labels = triple_barrier_labels_by_regime(
         events,
         bars_tb,
-        horizon_minutes=horizon_minutes,
-        pt_mult=float(barrier_cfg["pt_mult"]),
-        sl_mult=float(barrier_cfg["sl_mult"]),
+        config,
         price_col=price_col,
-        tie_break=tb_cfg["tie_break"]["mode"],
-        vol_kind=vol_cfg["kind"],
-        vol_window=int(vol_cfg["window_1m_bars"]),
-        min_sigma=float(vol_cfg["min_sigma"]),
+        time_col=None,
     )
 
     merged = events.join(labels[["t1", "label", "pt_price", "sl_price", "event_type"]])
@@ -332,23 +322,13 @@ def run_backtest_enhanced(
     events["t0"] = pd.to_datetime(events["entry_ts"])
     events = events.sort_values("t0").reset_index(drop=True)
 
-    tb_cfg = config["labeling"]["triple_barrier"]
-    horizon_minutes = int(tb_cfg["horizon_minutes"])
-    vol_cfg = tb_cfg["vol"]
-    barrier_cfg = tb_cfg["barriers"]
-
     bars_tb = _prepare_tb_bars(bars_5m, price_col_5m)
-    labels = triple_barrier_labels(
+    labels = triple_barrier_labels_by_regime(
         events,
         bars_tb,
-        horizon_minutes=horizon_minutes,
-        pt_mult=float(barrier_cfg["pt_mult"]),
-        sl_mult=float(barrier_cfg["sl_mult"]),
+        config,
         price_col=price_col_5m,
-        tie_break=tb_cfg["tie_break"]["mode"],
-        vol_kind=vol_cfg["kind"],
-        vol_window=int(vol_cfg["window_1m_bars"]),
-        min_sigma=float(vol_cfg["min_sigma"]),
+        time_col=None,
     )
 
     merged = events.join(labels[["t1", "label", "pt_price", "sl_price", "event_type"]])

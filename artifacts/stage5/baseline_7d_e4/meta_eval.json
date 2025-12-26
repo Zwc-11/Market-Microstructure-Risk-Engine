@@ -1,0 +1,102 @@
+{
+  "used_features": [
+    "regime_trend",
+    "regime_range",
+    "ret_1",
+    "ret_3",
+    "rv_5",
+    "rv_10",
+    "ofi_L1",
+    "ofi_L5",
+    "ofi_L10",
+    "lambda",
+    "replenish_L10",
+    "repl_ratio_L10",
+    "spread_mean",
+    "microprice"
+  ],
+  "dropped_features": [
+    "lambda_up",
+    "lambda_down"
+  ],
+  "missing_ratio": {
+    "regime_trend": 0.0,
+    "regime_range": 0.0,
+    "ret_1": 0.0,
+    "ret_3": 0.0,
+    "rv_5": 0.0,
+    "rv_10": 0.0,
+    "ofi_L1": 0.0,
+    "ofi_L5": 0.0,
+    "ofi_L10": 0.0,
+    "lambda": 0.0,
+    "lambda_up": 0.9241379310344827,
+    "lambda_down": 0.8827586206896552,
+    "replenish_L10": 0.0,
+    "repl_ratio_L10": 0.0,
+    "spread_mean": 0.0,
+    "microprice": 0.0
+  },
+  "missing_features": [
+    "lambda_up",
+    "lambda_down"
+  ],
+  "missing_examples": [
+    {
+      "entry_ts": "2025-12-01T05:35:00+00:00",
+      "missing_cols": [
+        "lambda_up",
+        "lambda_down"
+      ]
+    },
+    {
+      "entry_ts": "2025-12-01T06:20:00+00:00",
+      "missing_cols": [
+        "lambda_up",
+        "lambda_down"
+      ]
+    },
+    {
+      "entry_ts": "2025-12-01T06:35:00+00:00",
+      "missing_cols": [
+        "lambda_up",
+        "lambda_down"
+      ]
+    },
+    {
+      "entry_ts": "2025-12-01T07:05:00+00:00",
+      "missing_cols": [
+        "lambda_up",
+        "lambda_down"
+      ]
+    },
+    {
+      "entry_ts": "2025-12-01T07:20:00+00:00",
+      "missing_cols": [
+        "lambda_up",
+        "lambda_down"
+      ]
+    }
+  ],
+  "folds": [
+    {
+      "fold_id": 0,
+      "train_start": "2025-12-01T05:35:00+00:00",
+      "train_end": "2025-12-06T04:50:00+00:00",
+      "test_start": "2025-12-06T05:00:00+00:00",
+      "test_end": "2025-12-07T23:40:00+00:00",
+      "auc": 0.5523809523809524,
+      "precision": 0.0,
+      "recall": 0.0,
+      "train_rows": 101,
+      "test_rows": 44
+    }
+  ],
+  "overall": {
+    "auc": 0.6505034446210917,
+    "precision": 1.0,
+    "recall": 0.029411764705882353,
+    "rows": 145
+  },
+  "oof_coverage": 0.30344827586206896
+}

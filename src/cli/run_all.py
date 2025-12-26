@@ -19,13 +19,15 @@ from src.backtest.walkforward import generate_walkforward_folds
 from src.bars.time_bars import build_time_bars, resample_time_bars
 from src.cli.build_dataset import build_dataset
 from src.features.impact import kyle_lambda_features
+from src.features.intrabar import build_intrabar_features
 from src.features.microstructure import ofi_features
 from src.features.replenishment import replenishment_features
 from src.labeling.hazard_dataset import build_hazard_dataset
 from src.labeling.cusum import cusum_events
-from src.labeling.triple_barrier import triple_barrier_labels
+from src.labeling.triple_barrier import triple_barrier_labels, triple_barrier_labels_by_regime
 from src.modeling.load_model import load_hazard_model, predict_hazard_proba
 from src.modeling.train_hazard import train_hazard_model
+from src.modeling.train_meta import predict_meta, train_meta_model
 from src.regime.regime import classify_regime
 from src.strategy.entries_5m import generate_entries_5m
 
@@ -516,6 +518,8 @@ def _run_enhanced_walkforward(
     cfg: Dict,
     artifacts_dir: Path,
     policy_variants: Iterable[str],
+    events_override: Optional[pd.DataFrame] = None,
+    entry_variant: str = "baseline",
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     val_cfg = cfg["model"]["training"]["validation"]
     splits = val_cfg["splits"]
@@ -552,8 +556,12 @@ def _run_enhanced_walkforward(
         test_end = fold["test_end"]
 
         bars_5m_slice = bars_5m.loc[bars_5m.index <= test_end]
-        regime = classify_regime(bars_5m_slice, cfg["regime"])
-        events_all = generate_entries_5m(bars_5m_slice, regime, cfg["strategy"]["entries_5m"])
+        if events_override is None:
+            regime = classify_regime(bars_5m_slice, cfg["regime"])
+            events_all = generate_entries_5m(bars_5m_slice, regime, cfg["strategy"]["entries_5m"])
+        else:
+            events_all = events_override.copy()
+
         if not events_all.empty:
             events = events_all.loc[
                 (events_all["entry_ts"] >= test_start) & (events_all["entry_ts"] <= test_end)
@@ -639,6 +647,7 @@ def _run_enhanced_walkforward(
                     "test_start": test_start,
                     "test_end": test_end,
                     "policy_variant": variant,
+                    "entry_variant": entry_variant,
                     "baseline_pnl_net": base_summary["pnl_net"],
                     "enhanced_pnl_net": enh_summary["pnl_net"],
                     "delta_pnl_net": enh_summary["pnl_net"] - base_summary["pnl_net"],
@@ -678,8 +687,8 @@ def _run_enhanced_walkforward(
                 }
             )
 
-            trades_baseline_all.append(base_trades.assign(fold_id=fold["fold_id"]))
-            trades_enhanced_all.append(enh_trades.assign(fold_id=fold["fold_id"], policy_variant=variant))
+        trades_baseline_all.append(base_trades.assign(fold_id=fold["fold_id"]))
+        trades_enhanced_all.append(enh_trades.assign(fold_id=fold["fold_id"], policy_variant=variant))
 
     compare = pd.DataFrame(rows)
     trades_baseline = pd.concat(trades_baseline_all, ignore_index=True) if trades_baseline_all else pd.DataFrame()
@@ -944,13 +953,58 @@ def run_all(
     bybit_book_sample_ms: Optional[int] = None,
     end_inclusive_date: bool = False,
     policy_variants: Optional[List[str]] = None,
+    meta_enabled: Optional[bool] = None,
+    meta_threshold: Optional[float] = None,
+    label_horizon_minutes: Optional[int] = None,
+    disable_trend_pullback_long: bool = False,
+    disable_trend_pullback_short: bool = False,
+    disable_range_vwap_band: bool = False,
+    enable_trend_pullback_long_filter: Optional[bool] = None,
+    force_rebuild: bool = False,
 ) -> pd.DataFrame:
     raw_dir = Path(cfg["paths"]["raw_dir"])
     processed_dir = Path(cfg["paths"]["processed_dir"])
     artifacts_dir = Path(cfg["paths"]["artifacts_dir"])
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    pipeline_health: Dict[str, object] = {}
+
+    if meta_enabled is not None:
+        cfg.setdefault("model", {}).setdefault("meta", {})["enabled"] = bool(meta_enabled)
+    if meta_threshold is not None:
+        cfg.setdefault("model", {}).setdefault("meta", {})["threshold"] = float(meta_threshold)
+    if label_horizon_minutes is not None:
+        tb_cfg = cfg.setdefault("labeling", {}).setdefault("triple_barrier", {})
+        horizon_val = int(label_horizon_minutes)
+        tb_cfg["horizon_minutes"] = horizon_val
+        by_regime = tb_cfg.get("by_regime")
+        if isinstance(by_regime, dict):
+            for overrides in by_regime.values():
+                if isinstance(overrides, dict):
+                    overrides["horizon"] = horizon_val
+    if disable_trend_pullback_long or disable_trend_pullback_short or disable_range_vwap_band:
+        subtypes = (
+            cfg.setdefault("strategy", {})
+            .setdefault("entries_5m", {})
+            .setdefault("subtypes", {})
+        )
+        if disable_trend_pullback_long:
+            subtypes["trend_pullback_long"] = False
+        if disable_trend_pullback_short:
+            subtypes["trend_pullback_short"] = False
+        if disable_range_vwap_band:
+            subtypes["range_vwap_band"] = False
+    if enable_trend_pullback_long_filter is not None:
+        long_filter = (
+            cfg.setdefault("strategy", {})
+            .setdefault("entries_5m", {})
+            .setdefault("trend", {})
+            .setdefault("pullback", {})
+            .setdefault("long_filter", {})
+        )
+        long_filter["enabled"] = bool(enable_trend_pullback_long_filter)
+
     cfg_hash = _config_hash(cfg)
-    pipeline_health: Dict[str, object] = {"config_hash": cfg_hash}
+    pipeline_health["config_hash"] = cfg_hash
 
     if datasets is None:
         if exchange == "okx":
@@ -982,6 +1036,8 @@ def run_all(
         roots = {"agg_trades": processed_dir / "agg_trades"}
         missing = _missing_datasets(raw_dir, exchange, market, symbol, required_datasets, start, end, roots)
         skip_build = not missing
+    if force_rebuild:
+        skip_build = False
 
     if not skip_build:
         try:
@@ -1012,6 +1068,7 @@ def run_all(
                 bybit_store_top_levels=bybit_store_top_levels,
                 bybit_book_sample_ms=bybit_book_sample_ms,
                 end_inclusive_date=end_inclusive_date,
+                force_rebuild=force_rebuild,
             )
         except Exception as exc:
             _data_gap_report(raw_dir, exchange, market, symbol, required_datasets, start, end, cfg_hash, artifacts_dir)
@@ -1304,12 +1361,124 @@ def run_all(
                 "CUSUM fallback produced 0 events. Check labeling.cusum thresholds or bar data coverage.",
             )
             raise ValueError("CUSUM fallback produced 0 events; cannot train hazard model.")
+    meta_cfg = cfg.get("model", {}).get("meta", {})
+    meta_enabled = bool(meta_cfg.get("enabled", False))
+    meta_threshold = float(meta_cfg.get("threshold", 0.55))
+    meta_features = None
+    intrabar_features = None
+    events_meta_veto = None
+    if meta_enabled and enhanced_enabled and bool(meta_cfg.get("include_microstructure", True)):
+        try:
+            meta_features = _build_hazard_features(bars_1m, l2, agg_trades, cfg)
+        except Exception:
+            meta_features = None
+
+    events_pre_meta = events.copy()
+    if meta_enabled and event_source == "baseline_entries" and not events.empty:
+        intrabar_cfg = meta_cfg.get("intrabar", {})
+        lookback_min = int(intrabar_cfg.get("lookback_min", 5))
+        intrabar_features = build_intrabar_features(bars_1m, events_pre_meta["entry_ts"], lookback_min)
+        oof, meta_model, meta_report, meta_frame = train_meta_model(
+            events_pre_meta,
+            bars_5m,
+            cfg,
+            hazard_features=meta_features,
+            intrabar_features=intrabar_features,
+            output_dir=artifacts_dir,
+        )
+        scores_oof = oof.reindex(meta_frame.index)
+        scores_full = pd.Series(predict_meta(meta_model, meta_frame), index=meta_frame.index)
+        scores_combined = scores_oof.copy()
+        missing_mask = scores_combined.isna()
+        scores_combined.loc[missing_mask] = scores_full.loc[missing_mask]
+        score_map = pd.Series(scores_combined.values, index=meta_frame["event_id"])
+        events_scored = events_pre_meta.copy()
+        events_scored["meta_score"] = events_scored["event_id"].map(score_map)
+        nan_ratio = float(events_scored["meta_score"].isna().mean())
+        missing_features = meta_report.get("missing_features", [])
+        missing_examples = meta_report.get("missing_examples", [])
+        if nan_ratio > 0.05:
+            debug = {
+                "nan_ratio": nan_ratio,
+                "missing_features": missing_features,
+                "missing_examples": missing_examples,
+            }
+            (artifacts_dir / "meta_score_debug.json").write_text(
+                json.dumps(debug, indent=2), encoding="utf-8"
+            )
+            raise ValueError(
+                "Meta score NaN ratio exceeds 5%. "
+                f"nan_ratio={nan_ratio:.3f} missing_features={missing_features} "
+                f"missing_examples={missing_examples}"
+            )
+        score_values = pd.to_numeric(scores_combined, errors="coerce").dropna()
+        quantiles = {}
+        if not score_values.empty:
+            quantiles = {
+                "min": float(score_values.min()),
+                "median": float(score_values.quantile(0.5)),
+                "p90": float(score_values.quantile(0.9)),
+                "p99": float(score_values.quantile(0.99)),
+                "max": float(score_values.max()),
+            }
+        debug = {
+            "nan_ratio": nan_ratio,
+            "quantiles": quantiles,
+            "missing_features": missing_features,
+            "missing_examples": missing_examples,
+            "total_scores": int(len(scores_combined)),
+            "oof_coverage": float(meta_report.get("oof_coverage", 0.0)),
+            "filled_from_full_ratio": float(missing_mask.mean()) if len(scores_combined) else 0.0,
+        }
+        (artifacts_dir / "meta_score_debug.json").write_text(
+            json.dumps(debug, indent=2), encoding="utf-8"
+        )
+
+        score_source = pd.Series("oof", index=meta_frame.index)
+        score_source.loc[missing_mask] = "full"
+        meta_scores = pd.DataFrame(
+            {
+                "event_id": meta_frame["event_id"].values,
+                "entry_ts": pd.to_datetime(meta_frame["entry_ts"]).values,
+                "regime": meta_frame.get("regime"),
+                "label": meta_frame["y"].values,
+                "score": scores_combined.values,
+                "score_oof": scores_oof.values,
+                "score_full": scores_full.values,
+                "score_source": score_source.values,
+                "gross_pnl_est": meta_frame.get("gross_pnl_est"),
+                "net_pnl_est": meta_frame.get("net_pnl_est"),
+            }
+        )
+        meta_scores.to_parquet(artifacts_dir / "meta_scores.parquet", index=False)
+        events_meta_veto = events_scored.copy()
+        before = int(len(events_meta_veto))
+        events_meta_veto = events_meta_veto[events_meta_veto["meta_score"] >= meta_threshold].reset_index(drop=True)
+        pipeline_health["meta"] = {
+            "enabled": True,
+            "events_before": before,
+            "events_after": int(len(events_meta_veto)),
+            "threshold": meta_threshold,
+            "used_features": meta_report.get("used_features", []),
+            "oof_coverage": float(meta_report.get("oof_coverage", 0.0)),
+        }
+        if events_meta_veto.empty:
+            pipeline_health["meta_veto"] = {
+                "enabled": True,
+                "events_after": 0,
+                "reason": "All events filtered by meta threshold.",
+                "score_quantiles": quantiles,
+            }
+
     pipeline_health["regime"] = regime["regime"].value_counts().to_dict() if not regime.empty else {}
     pipeline_health["entries_5m"] = {"events_count": int(len(events))}
     pipeline_health["event_source"] = event_source
     _write_pipeline_health(pipeline_health, artifacts_dir)
 
     baseline_trades, _, _ = run_backtest(bars_5m, events, cfg)
+    if meta_enabled and event_source == "baseline_entries" and not events_pre_meta.empty:
+        baseline_all, _, _ = run_backtest(bars_5m, events_pre_meta, cfg)
+        baseline_all.to_parquet(artifacts_dir / "trades_baseline_all.parquet", index=False)
     pipeline_health["baseline"] = {"trades_count": int(len(baseline_trades))}
     _write_pipeline_health(pipeline_health, artifacts_dir)
 
@@ -1340,29 +1509,60 @@ def run_all(
         base_summary = compute_summary(trades_baseline, base_equity, cfg["backtest"]["initial_capital"])
         base_tail = compute_tail_metrics(trades_baseline)
         base_time = compute_time_in_trade(trades_baseline)
-        compare = pd.DataFrame(
-            [
+        compare_rows = [
+            {
+                "fold_id": 0,
+                "policy_variant": "baseline_only",
+                "entry_variant": "baseline",
+                "baseline_pnl_net": base_summary["pnl_net"],
+                "baseline_sharpe": base_summary["sharpe"],
+                "baseline_max_drawdown": base_summary["max_drawdown"],
+                "baseline_trade_count": base_summary["trade_count"],
+                "baseline_win_rate": base_summary["win_rate"],
+                "baseline_avg_win": base_summary["avg_win"],
+                "baseline_avg_loss": base_summary["avg_loss"],
+                "baseline_total_fees": base_summary["total_fees"],
+                "baseline_total_slippage": base_summary["total_slippage"],
+                "baseline_turnover": base_summary["turnover"],
+                "baseline_worst_5pct_trade": base_tail["worst_5pct_trade"],
+                "baseline_expected_shortfall_95": base_tail.get("expected_shortfall_95"),
+                "baseline_worst_week_pnl": base_tail["worst_week_pnl"],
+                "baseline_avg_time_in_trade_min": base_time,
+                "hazard_enabled": 0,
+            }
+        ]
+        if meta_enabled and event_source == "baseline_entries" and events_meta_veto is not None:
+            meta_trades, _, _ = run_backtest(bars_5m, events_meta_veto, cfg)
+            meta_equity = pd.DataFrame(
+                {"equity": [cfg["backtest"]["initial_capital"]]}, index=[bars_5m.index[-1]]
+            )
+            meta_summary = compute_summary(meta_trades, meta_equity, cfg["backtest"]["initial_capital"])
+            meta_tail = compute_tail_metrics(meta_trades)
+            meta_time = compute_time_in_trade(meta_trades)
+            compare_rows.append(
                 {
                     "fold_id": 0,
                     "policy_variant": "baseline_only",
-                    "baseline_pnl_net": base_summary["pnl_net"],
-                    "baseline_sharpe": base_summary["sharpe"],
-                    "baseline_max_drawdown": base_summary["max_drawdown"],
-                    "baseline_trade_count": base_summary["trade_count"],
-                    "baseline_win_rate": base_summary["win_rate"],
-                    "baseline_avg_win": base_summary["avg_win"],
-                    "baseline_avg_loss": base_summary["avg_loss"],
-                    "baseline_total_fees": base_summary["total_fees"],
-                    "baseline_total_slippage": base_summary["total_slippage"],
-                    "baseline_turnover": base_summary["turnover"],
-                    "baseline_worst_5pct_trade": base_tail["worst_5pct_trade"],
-                    "baseline_expected_shortfall_95": base_tail.get("expected_shortfall_95"),
-                    "baseline_worst_week_pnl": base_tail["worst_week_pnl"],
-                    "baseline_avg_time_in_trade_min": base_time,
+                    "entry_variant": "meta_veto",
+                    "baseline_pnl_net": meta_summary["pnl_net"],
+                    "baseline_sharpe": meta_summary["sharpe"],
+                    "baseline_max_drawdown": meta_summary["max_drawdown"],
+                    "baseline_trade_count": meta_summary["trade_count"],
+                    "baseline_win_rate": meta_summary["win_rate"],
+                    "baseline_avg_win": meta_summary["avg_win"],
+                    "baseline_avg_loss": meta_summary["avg_loss"],
+                    "baseline_total_fees": meta_summary["total_fees"],
+                    "baseline_total_slippage": meta_summary["total_slippage"],
+                    "baseline_turnover": meta_summary["turnover"],
+                    "baseline_worst_5pct_trade": meta_tail["worst_5pct_trade"],
+                    "baseline_expected_shortfall_95": meta_tail.get("expected_shortfall_95"),
+                    "baseline_worst_week_pnl": meta_tail["worst_week_pnl"],
+                    "baseline_avg_time_in_trade_min": meta_time,
                     "hazard_enabled": 0,
                 }
-            ]
-        )
+            )
+            meta_trades.to_parquet(artifacts_dir / "trades_meta_veto_baseline.parquet", index=False)
+        compare = pd.DataFrame(compare_rows)
     else:
         hazard_trades = fallback_trades if event_source == "cusum_fallback" else baseline_trades
         hazard_df = build_hazard_dataset(hazard_trades, bars_1m, cfg)
@@ -1370,7 +1570,9 @@ def run_all(
             raise ValueError("Hazard dataset is empty; check input trades and bars.")
         hazard_df.to_parquet(artifacts_dir / "hazard_dataset.parquet", index=False)
 
-        hazard_features = _build_hazard_features(bars_1m, l2, agg_trades, cfg)
+        hazard_features = meta_features if meta_features is not None else _build_hazard_features(
+            bars_1m, l2, agg_trades, cfg
+        )
         if hazard_features.empty:
             raise ValueError("Hazard features are empty; check L2 data availability.")
         hazard_features.to_parquet(artifacts_dir / "hazard_features.parquet", index=False)
@@ -1389,7 +1591,7 @@ def run_all(
             _write_signal_1m(hazard_features, model_path, cfg, artifacts_dir / "signal_1m.parquet")
 
         policy_variants = policy_variants or ["full_policy"]
-        compare, trades_baseline, trades_enhanced = _run_enhanced_walkforward(
+        compare_base, trades_baseline, trades_enhanced = _run_enhanced_walkforward(
             bars_5m,
             bars_1m,
             hazard_df,
@@ -1397,7 +1599,25 @@ def run_all(
             cfg,
             artifacts_dir,
             policy_variants,
+            events_override=events,
+            entry_variant="baseline",
         )
+        compare = compare_base
+        if meta_enabled and event_source == "baseline_entries" and events_meta_veto is not None:
+            compare_meta, trades_meta_base, trades_meta_enh = _run_enhanced_walkforward(
+                bars_5m,
+                bars_1m,
+                hazard_df,
+                hazard_features,
+                cfg,
+                artifacts_dir,
+                policy_variants,
+                events_override=events_meta_veto,
+                entry_variant="meta_veto",
+            )
+            compare = pd.concat([compare_base, compare_meta], ignore_index=True)
+            trades_meta_base.to_parquet(artifacts_dir / "trades_meta_veto_baseline.parquet", index=False)
+            trades_meta_enh.to_parquet(artifacts_dir / "trades_meta_veto_enhanced.parquet", index=False)
 
     compare_path = artifacts_dir / "compare_summary.parquet"
     compare["config_hash"] = cfg_hash
@@ -1494,9 +1714,53 @@ def main() -> None:
         help="Emit BYBIT book snapshots every N ms (default 1000)",
     )
     parser.add_argument(
+        "--meta-enabled",
+        action="store_true",
+        default=None,
+        help="Enable meta-label entry filter (overrides config).",
+    )
+    parser.add_argument(
+        "--meta-threshold",
+        type=float,
+        default=None,
+        help="Meta-label threshold override.",
+    )
+    parser.add_argument(
+        "--label-horizon-minutes",
+        type=int,
+        default=None,
+        help="Override triple-barrier horizon minutes (applies to all regimes).",
+    )
+    parser.add_argument(
+        "--disable-trend-pullback-long",
+        action="store_true",
+        help="Disable trend_pullback_long entry subtype.",
+    )
+    parser.add_argument(
+        "--disable-trend-pullback-short",
+        action="store_true",
+        help="Disable trend_pullback_short entry subtype.",
+    )
+    parser.add_argument(
+        "--disable-range-vwap-band",
+        action="store_true",
+        help="Disable range_vwap_band entry subtype.",
+    )
+    parser.add_argument(
+        "--enable-trend-pullback-long-filter",
+        action="store_true",
+        default=None,
+        help="Enable extra filter for trend_pullback_long (EMA slope + confirmation).",
+    )
+    parser.add_argument(
         "--end-inclusive-date",
         action="store_true",
         help="Treat end date as inclusive (internally adds 1 day to end).",
+    )
+    parser.add_argument(
+        "--force-rebuild",
+        action="store_true",
+        help="Rebuild datasets even if cached partitions exist.",
     )
     parser.add_argument(
         "--policy-variants",
@@ -1534,6 +1798,14 @@ def main() -> None:
         bybit_store_top_levels=args.bybit_store_top_levels,
         bybit_book_sample_ms=args.bybit_book_sample_ms,
         end_inclusive_date=args.end_inclusive_date,
+        meta_enabled=args.meta_enabled,
+        meta_threshold=args.meta_threshold,
+        label_horizon_minutes=args.label_horizon_minutes,
+        disable_trend_pullback_long=args.disable_trend_pullback_long,
+        disable_trend_pullback_short=args.disable_trend_pullback_short,
+        disable_range_vwap_band=args.disable_range_vwap_band,
+        enable_trend_pullback_long_filter=args.enable_trend_pullback_long_filter,
+        force_rebuild=args.force_rebuild,
         policy_variants=variants,
     )
 

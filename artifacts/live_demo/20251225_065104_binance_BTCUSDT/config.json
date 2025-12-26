@@ -1,0 +1,13 @@
+{
+  "initial_balance": 1000.0,
+  "ret_1m_thr": 0.0001,
+  "obi_thr": 0.001,
+  "take_profit_pct": 0.003,
+  "stop_loss_pct": 0.003,
+  "max_hold_minutes": 60,
+  "position_pct": 0.25,
+  "fee_bps": 0.0,
+  "cooldown_minutes": 2,
+  "allow_long": true,
+  "allow_short": true
+}

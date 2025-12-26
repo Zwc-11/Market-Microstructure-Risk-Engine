@@ -1,0 +1,169 @@
+{
+  "gross_pnl": -3.789051826241664,
+  "fees": 16.8,
+  "slippage": 33.6,
+  "net_pnl": -54.189051826241666,
+  "pnl_by_day": {
+    "2025-12-05": -2.7648787656328606,
+    "2025-12-06": -21.654703500002302,
+    "2025-12-07": -29.769469560606495
+  },
+  "pnl_by_regime": {
+    "TREND": -54.18905182624166
+  },
+  "pnl_by_entry_type": {
+    "trend_pullback_long": -16.506438458276964,
+    "trend_pullback_short": -37.6826133679647
+  },
+  "pnl_by_exit_reason": {
+    "barrier_pt": 21.32268181527455,
+    "barrier_sl": -51.69978133458061,
+    "barrier_timeout": -8.164285756802599,
+    "hazard_exit": -2.6058193588028207,
+    "hazard_fail_fast": -13.041847191330186
+  },
+  "holding_time_min": {
+    "mean": 6.357142857142857,
+    "median": 5.5,
+    "p95": 10.0
+  },
+  "turnover_stats": {
+    "notional_sum": 168000.0,
+    "turnover": 16.8
+  },
+  "hazard": {
+    "p_hat_summary": {
+      "min": 0.0,
+      "mean": 0.5400581038841025,
+      "p50": 0.5327156041719933,
+      "p90": 0.6,
+      "p99": 0.783573051584328
+    },
+    "trigger_counts": {
+      "normal": 9328,
+      "high": 752
+    },
+    "action_counts": {
+      "no_add": 9302,
+      "reduce": 734,
+      "hold": 26,
+      "exit": 18
+    }
+  },
+  "exits_saved_estimate": {
+    "matched_trades": 28,
+    "hazard_exit_count": 10,
+    "delta_net_pnl_sum": -4.759245159535832,
+    "delta_net_pnl_mean": -0.16997304141199399
+  },
+  "trade_log_used": "trades_enhanced.parquet",
+  "compare_summary_rows": 2,
+  "pipeline_health": {
+    "config_hash": "c61996bf5e4feaa72216e52626758ac58497e5943b754ff56058273e03d3be93",
+    "agg_trades": {
+      "rows_total": 17333296,
+      "rows_per_day": {
+        "2025-12-01": 3669773,
+        "2025-12-02": 3272040,
+        "2025-12-03": 3096455,
+        "2025-12-04": 2234635,
+        "2025-12-05": 2339005,
+        "2025-12-06": 877989,
+        "2025-12-07": 1843399
+      },
+      "min_ts_utc": "2025-12-01T00:00:00.010000+00:00",
+      "max_ts_utc": "2025-12-07T23:59:58.379000+00:00"
+    },
+    "book_depth": {
+      "rows_total": 604812,
+      "rows_per_day": {
+        "2025-12-01": 86400,
+        "2025-12-02": 86402,
+        "2025-12-03": 86402,
+        "2025-12-04": 86402,
+        "2025-12-05": 86402,
+        "2025-12-06": 86402,
+        "2025-12-07": 86402
+      },
+      "min_ts_utc": "2025-12-01T00:00:01.121000+00:00",
+      "max_ts_utc": "2025-12-07T23:59:59.015000+00:00",
+      "sampling_rate_sec": 1.0
+    },
+    "bars_1m": {
+      "count": 10080,
+      "missing_minutes_ratio": 0.0
+    },
+    "bars_5m": {
+      "count": 2016
+    },
+    "meta": {
+      "enabled": true,
+      "events_before": 87,
+      "events_after": 44,
+      "threshold": 0.35,
+      "used_features": [
+        "regime_trend",
+        "regime_range",
+        "ret_1",
+        "ret_3",
+        "rv_5",
+        "rv_10",
+        "ofi_L1",
+        "ofi_L5",
+        "ofi_L10",
+        "lambda",
+        "replenish_L10",
+        "repl_ratio_L10",
+        "spread_mean",
+        "microprice",
+        "ret_1m_last",
+        "ret_2m_sum",
+        "ret_5m_sum",
+        "ret_slope_5",
+        "realized_vol_5",
+        "body_ratio_mean",
+        "upper_wick_ratio_max",
+        "lower_wick_ratio_max",
+        "close_location_last",
+        "close_location_mean",
+        "vol_zscore_5"
+      ],
+      "oof_coverage": 0.3103448275862069
+    },
+    "regime": {
+      "TREND": 1766,
+      "HAZARD": 237,
+      "RANGE": 13
+    },
+    "entries_5m": {
+      "events_count": 87
+    },
+    "event_source": "baseline_entries",
+    "baseline": {
+      "trades_count": 87
+    },
+    "hazard": {
+      "enabled": true,
+      "reason_if_disabled": null
+    }
+  },
+  "hazard_report": {
+    "dropped_y": 87,
+    "folds": [],
+    "overall": {},
+    "features": [
+      "ofi_L1",
+      "ofi_L5",
+      "ofi_L10",
+      "lambda",
+      "r2",
+      "resid_std",
+      "depletion_L10",
+      "replenish_L10",
+      "repl_ratio_L10",
+      "spread_mean",
+      "microprice"
+    ]
+  },
+  "assumed_initial_capital": 10000.0
+}

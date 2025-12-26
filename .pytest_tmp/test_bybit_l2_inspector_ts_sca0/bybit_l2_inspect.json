@@ -1,0 +1,152 @@
+{
+  "root": "E:\\100K_strategy\\.pytest_tmp\\test_bybit_l2_inspector_ts_sca0\\bybit_root",
+  "symbol": "BTCUSDT",
+  "date": "2025-12-01",
+  "level": 200,
+  "start_ms": 1764547200000,
+  "end_ms": 1764633600000,
+  "files": [
+    {
+      "folder": "E:\\100K_strategy\\.pytest_tmp\\test_bybit_l2_inspector_ts_sca0\\bybit_root\\2025-12-01_BTCUSDT_ob200.data",
+      "selected": "E:\\100K_strategy\\.pytest_tmp\\test_bybit_l2_inspector_ts_sca0\\bybit_root\\2025-12-01_BTCUSDT_ob200.data\\orderbook.data",
+      "candidates": [
+        "E:\\100K_strategy\\.pytest_tmp\\test_bybit_l2_inspector_ts_sca0\\bybit_root\\2025-12-01_BTCUSDT_ob200.data\\orderbook.data"
+      ],
+      "size_bytes": 214,
+      "container": "raw",
+      "format": "jsonl",
+      "inner_name": null,
+      "magic_bytes": "7b2274797065223a",
+      "parsed_records": 2,
+      "lines_seen": 2,
+      "decode_errors": 0,
+      "error_rate": 0.0,
+      "first_error": null,
+      "first_error_sample": null,
+      "first_events": [
+        {
+          "type": "snapshot",
+          "ts": 1764547200,
+          "data": {
+            "s": "BTCUSDT",
+            "seq": 1,
+            "u": 1,
+            "a": [
+              [
+                "101",
+                "1"
+              ]
+            ],
+            "b": [
+              [
+                "100",
+                "1"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "delta",
+          "ts": 1764547201,
+          "data": {
+            "s": "BTCUSDT",
+            "seq": 2,
+            "u": 2,
+            "a": [
+              [
+                "102",
+                "1"
+              ]
+            ],
+            "b": [
+              [
+                "99",
+                "1"
+              ]
+            ]
+          }
+        }
+      ],
+      "last_events": [
+        {
+          "type": "snapshot",
+          "ts": 1764547200,
+          "data": {
+            "s": "BTCUSDT",
+            "seq": 1,
+            "u": 1,
+            "a": [
+              [
+                "101",
+                "1"
+              ]
+            ],
+            "b": [
+              [
+                "100",
+                "1"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "delta",
+          "ts": 1764547201,
+          "data": {
+            "s": "BTCUSDT",
+            "seq": 2,
+            "u": 2,
+            "a": [
+              [
+                "102",
+                "1"
+              ]
+            ],
+            "b": [
+              [
+                "99",
+                "1"
+              ]
+            ]
+          }
+        }
+      ],
+      "min_ts_ms": 1764547200000,
+      "max_ts_ms": 1764547201000,
+      "min_ts_utc": "2025-12-01T00:00:00+00:00",
+      "max_ts_utc": "2025-12-01T00:00:01+00:00",
+      "events_in_window": 2,
+      "type_counts": {
+        "snapshot": 1,
+        "delta": 1
+      },
+      "ts_scale_counts": {
+        "seconds": 2,
+        "milliseconds": 0,
+        "microseconds": 0,
+        "nanoseconds": 0,
+        "invalid": 0
+      }
+    }
+  ],
+  "ts_scale_counts": {
+    "seconds": 2,
+    "milliseconds": 0,
+    "microseconds": 0,
+    "nanoseconds": 0,
+    "invalid": 0
+  },
+  "totals": {
+    "parsed_records": 2,
+    "events_in_window": 2,
+    "min_ts_ms": 1764547200000,
+    "max_ts_ms": 1764547201000,
+    "min_ts_utc": "2025-12-01T00:00:00+00:00",
+    "max_ts_utc": "2025-12-01T00:00:01+00:00",
+    "type_counts": {
+      "snapshot": 1,
+      "delta": 1
+    },
+    "decode_errors": 0
+  }
+}

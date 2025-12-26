@@ -210,3 +210,69 @@ def triple_barrier_labels(
         )
 
     return pd.DataFrame(results, index=events.index)
+
+
+def triple_barrier_labels_by_regime(
+    events: pd.DataFrame,
+    bars: pd.DataFrame,
+    cfg: dict,
+    price_col: str = "close",
+    time_col: Optional[str] = None,
+) -> pd.DataFrame:
+    """
+    Apply triple-barrier labeling with optional regime-specific overrides.
+
+    Overrides are read from:
+      cfg["labeling"]["triple_barrier"]["by_regime"][REGIME]
+    Each override may provide:
+      horizon, pt_mult, sl_mult
+    """
+    tb_cfg = cfg["labeling"]["triple_barrier"]
+    by_regime = tb_cfg.get("by_regime") or {}
+
+    base_horizon = int(tb_cfg["horizon_minutes"])
+    base_pt = float(tb_cfg["barriers"]["pt_mult"])
+    base_sl = float(tb_cfg["barriers"]["sl_mult"])
+    vol_cfg = tb_cfg["vol"]
+    tie_break = str(tb_cfg["tie_break"]["mode"])
+
+    if "regime" not in events.columns or not by_regime:
+        return triple_barrier_labels(
+            events,
+            bars,
+            horizon_minutes=base_horizon,
+            pt_mult=base_pt,
+            sl_mult=base_sl,
+            price_col=price_col,
+            tie_break=tie_break,
+            vol_kind=str(vol_cfg["kind"]),
+            vol_window=int(vol_cfg["window_1m_bars"]),
+            min_sigma=float(vol_cfg["min_sigma"]),
+            time_col=time_col,
+        )
+
+    results = []
+    for regime, group in events.groupby("regime"):
+        key = str(regime).upper()
+        overrides = by_regime.get(key, {})
+        horizon = int(overrides.get("horizon", base_horizon))
+        pt_mult = float(overrides.get("pt_mult", base_pt))
+        sl_mult = float(overrides.get("sl_mult", base_sl))
+
+        labeled = triple_barrier_labels(
+            group,
+            bars,
+            horizon_minutes=horizon,
+            pt_mult=pt_mult,
+            sl_mult=sl_mult,
+            price_col=price_col,
+            tie_break=tie_break,
+            vol_kind=str(vol_cfg["kind"]),
+            vol_window=int(vol_cfg["window_1m_bars"]),
+            min_sigma=float(vol_cfg["min_sigma"]),
+            time_col=time_col,
+        )
+        results.append(labeled)
+
+    combined = pd.concat(results)
+    return combined.reindex(events.index)
